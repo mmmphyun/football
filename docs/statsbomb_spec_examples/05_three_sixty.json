@@ -1,0 +1,77 @@
+[
+  {
+    "_comment": "three-sixty/{match_id}.json의 1개 프레임 항목",
+    "event_uuid": "098eff63-9c94-4009-9c8a-b9b48e945e72",
+    "_comment_uuid": "04_events.json의 Pass 이벤트 id와 1:1 매핑됨!",
+    "visible_area": [
+      7.39,
+      80.0,
+      39.71,
+      0.0,
+      82.53,
+      0.0,
+      113.82,
+      80.0,
+      7.39,
+      80.0
+    ],
+    "freeze_frame": [
+      {
+        "_comment": "이벤트 주체 선수(패스를 차는 진첸코)",
+        "teammate": true,
+        "actor": true,
+        "keeper": false,
+        "location": [
+          61.0,
+          40.1
+        ]
+      },
+      {
+        "_comment": "아군 동료 선수 1 (익명 위치)",
+        "teammate": true,
+        "actor": false,
+        "keeper": false,
+        "location": [
+          40.58,
+          41.32
+        ]
+      },
+      {
+        "_comment": "아군 동료 선수 2 (익명 위치)",
+        "teammate": true,
+        "actor": false,
+        "keeper": false,
+        "location": [
+          41.83,
+          22.42
+        ]
+      },
+      {
+        "_comment": "상대팀 수비 선수 1 (익명 위치)",
+        "teammate": false,
+        "actor": false,
+        "keeper": false,
+        "location": [
+          60.02,
+          52.18
+        ]
+      },
+      {
+        "_comment": "상대팀 골키퍼",
+        "teammate": false,
+        "actor": false,
+        "keeper": true,
+        "location": [
+          117.5,
+          40.0
+        ]
+      }
+    ],
+    "_key_summary": [
+      "1. 선수 ID가 없음 (오직 teammate, actor, keeper, location만 존재)",
+      "2. actor=True 선수는 해당 event['player']['id']와 100% 일치 매핑 가능",
+      "3. keeper=True 선수는 상대팀/아군 골키퍼와 매핑 가능",
+      "4. 나머지 선수는 팀 소속(teammate)에 따라 구역 점유(zones.py) 및 고스트 토큰으로 렌더링"
+    ]
+  }
+]

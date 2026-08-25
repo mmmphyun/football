@@ -1,0 +1,59 @@
+[
+  {
+    "team_id": 911,
+    "team_name": "Ukraine",
+    "lineup": [
+      {
+        "_comment": "선수 기본 정보 및 경기 중 포지션 변화 기록",
+        "player_id": 3575,
+        "player_name": "Oleksandr Zinchenko",
+        "player_nickname": null,
+        "jersey_number": 17,
+        "country": {
+          "id": 238,
+          "name": "Ukraine"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "_comment": "선발 포지션: 중앙 미드필더 (시작~69:57)",
+            "position_id": 15,
+            "position": "Left Center Midfield",
+            "from": "00:00",
+            "to": "69:57",
+            "from_period": 1,
+            "to_period": 2,
+            "start_reason": "Starting XI",
+            "end_reason": "Tactical Shift"
+          },
+          {
+            "_comment": "전술 변화: 왼쪽 윙 (69:57~경기종료)",
+            "position_id": 21,
+            "position": "Left Wing",
+            "from": "69:57",
+            "to": null,
+            "from_period": 2,
+            "to_period": null,
+            "start_reason": "Tactical Shift",
+            "end_reason": "Final Whistle"
+          }
+        ]
+      },
+      {
+        "_comment": "골키퍼 예시",
+        "player_id": 11394,
+        "player_name": "Georgiy Bushchan",
+        "jersey_number": 1,
+        "positions": [
+          {
+            "position_id": 1,
+            "position": "Goalkeeper",
+            "from": "00:00",
+            "to": null,
+            "start_reason": "Starting XI"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,247 @@
+[
+  {
+    "_comment": "=== 1. 패스 이벤트 (Pass) ===",
+    "id": "098eff63-9c94-4009-9c8a-b9b48e945e72",
+    "index": 120,
+    "period": 1,
+    "timestamp": "00:03:45.120",
+    "minute": 3,
+    "second": 45,
+    "type": {
+      "id": 30,
+      "name": "Pass"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "play_pattern": {
+      "id": 1,
+      "name": "Regular Play"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 3575,
+      "name": "Oleksandr Zinchenko"
+    },
+    "position": {
+      "id": 15,
+      "name": "Left Center Midfield"
+    },
+    "location": [
+      61.0,
+      40.1
+    ],
+    "duration": 1.45,
+    "pass": {
+      "recipient": {
+        "id": 30650,
+        "name": "Mykola Shaparenko"
+      },
+      "length": 18.2,
+      "angle": 0.45,
+      "height": {
+        "id": 1,
+        "name": "Ground Pass"
+      },
+      "end_location": [
+        76.5,
+        48.0
+      ],
+      "outcome": null,
+      "_comment_outcome": "outcome이 None이면 패스 성공! (Incomplete, Out 등은 실패)"
+    }
+  },
+  {
+    "_comment": "=== 2. 캐리/드리블 전진 이벤트 (Carry) ===",
+    "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+    "index": 121,
+    "period": 1,
+    "timestamp": "00:03:46.570",
+    "minute": 3,
+    "second": 46,
+    "type": {
+      "id": 43,
+      "name": "Carry"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 30650,
+      "name": "Mykola Shaparenko"
+    },
+    "location": [
+      76.5,
+      48.0
+    ],
+    "duration": 2.1,
+    "carry": {
+      "end_location": [
+        85.0,
+        46.5
+      ]
+    }
+  },
+  {
+    "_comment": "=== 3. 압박 이벤트 (Pressure) ===",
+    "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+    "index": 122,
+    "period": 1,
+    "timestamp": "00:03:47.000",
+    "minute": 3,
+    "second": 47,
+    "type": {
+      "id": 17,
+      "name": "Pressure"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 4713,
+      "name": "Ezgjan Alioski"
+    },
+    "location": [
+      84.0,
+      45.0
+    ],
+    "duration": 1.2,
+    "_key_point": "수비팀(북마케도니아)의 압박. x>=40이므로 PPDA 분모에 반영됨"
+  },
+  {
+    "_comment": "=== 4. 슈팅 및 골 이벤트 (Shot + Shot Freeze Frame) ===",
+    "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+    "index": 125,
+    "period": 1,
+    "timestamp": "00:03:52.000",
+    "minute": 3,
+    "second": 52,
+    "type": {
+      "id": 16,
+      "name": "Shot"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "play_pattern": {
+      "id": 1,
+      "name": "Regular Play"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 10655,
+      "name": "Andriy Yarmolenko"
+    },
+    "location": [
+      108.5,
+      38.0
+    ],
+    "duration": 0.8,
+    "shot": {
+      "statsbomb_xg": 0.38,
+      "end_location": [
+        120.0,
+        42.1,
+        1.2
+      ],
+      "outcome": {
+        "id": 97,
+        "name": "Goal"
+      },
+      "body_part": {
+        "id": 38,
+        "name": "Left Foot"
+      },
+      "type": {
+        "id": 87,
+        "name": "Open Play"
+      },
+      "freeze_frame": [
+        {
+          "_comment": "Shot 이벤트 내부에 포함된 슛 전용 프리즈프레임 (선수 정보 포함)",
+          "location": [
+            118.0,
+            40.0
+          ],
+          "player": {
+            "id": 21345,
+            "name": "Stole Dimitrievski"
+          },
+          "position": {
+            "id": 1,
+            "name": "Goalkeeper"
+          },
+          "teammate": false
+        },
+        {
+          "location": [
+            112.0,
+            39.5
+          ],
+          "player": {
+            "id": 30644,
+            "name": "Darko Velkovski"
+          },
+          "position": {
+            "id": 4,
+            "name": "Center Back"
+          },
+          "teammate": false
+        }
+      ]
+    }
+  },
+  {
+    "_comment": "=== 5. 공 회수 이벤트 (Ball Recovery - 전환 분석의 기점) ===",
+    "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
+    "index": 210,
+    "period": 1,
+    "timestamp": "00:08:12.300",
+    "minute": 8,
+    "second": 12,
+    "type": {
+      "id": 2,
+      "name": "Ball Recovery"
+    },
+    "possession": 15,
+    "possession_team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 4713,
+      "name": "Ezgjan Alioski"
+    },
+    "location": [
+      32.0,
+      15.0
+    ],
+    "_key_point": "이 시점부터 8초 이내 슈팅이나 상대 3분할(x>=80) 진입 시 카운터어택 전환 성공으로 집계"
+  }
+]

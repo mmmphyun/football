@@ -1,0 +1,32 @@
+[
+  {
+    "_comment": "360 데이터가 포함된 대표적인 대회 예시 (UEFA Euro 2024)",
+    "competition_id": 55,
+    "season_id": 282,
+    "country_name": "Europe",
+    "competition_name": "UEFA Euro",
+    "competition_gender": "male",
+    "competition_youth": false,
+    "competition_international": true,
+    "season_name": "2024",
+    "match_updated": "2026-05-01T19:58:06.077979",
+    "match_updated_360": "2026-05-01T19:58:06.077979",
+    "match_available_360": "2026-05-01T19:58:06.077979",
+    "match_available": "2026-05-01T19:58:06.077979",
+    "_key_point": "match_available_360이 null이 아니면 360 보유 대회로 즉시 판별 가능"
+  },
+  {
+    "_comment": "일반 이벤트만 있는 대회 예시 (La Liga 2015/2016)",
+    "competition_id": 11,
+    "season_id": 27,
+    "country_name": "Spain",
+    "competition_name": "La Liga",
+    "competition_gender": "male",
+    "season_name": "2015/2016",
+    "match_updated": "2023-09-20T17:21:32.111535",
+    "match_updated_360": null,
+    "match_available_360": null,
+    "match_available": "2023-09-20T17:21:32.111535",
+    "_key_point": "match_available_360이 null이므로 비-360 대회"
+  }
+]
