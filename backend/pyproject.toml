@@ -1,17 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "statsbomb-tactics-backend"
-version = "0.1.0"
-description = "StatsBomb Open Data tactical analysis backend"
-requires-python = ">=3.12"
+name = "football-tactics-backend"
+version = "0.3.0"
+description = "StatsBomb football tactical analysis backend"
+readme = "README.md"
+requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.30",
-    "httpx>=0.27",
-    "pandas>=2.2",
-    "numpy>=1.26",
-    "pydantic>=2.7",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.6.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+python_files = ["test_*.py"]
+pythonpath = ["."]
