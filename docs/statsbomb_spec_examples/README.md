@@ -1,57 +1,57 @@
-# StatsBomb Open Data 핵심 규격 및 예시 가이드
+# StatsBomb Open Data     
 
-본 디렉터리는 StatsBomb Open Data의 5대 핵심 데이터셋 스키마와 축구 전술 분석 시 반드시 알아야 할 도메인 규칙을 예시와 함께 정리한 문서입니다.
-
----
-
-## 📁 예시 파일 목차
-
-1. **`01_competitions.json`** — 대회 및 시즌 메타데이터 (`match_available_360` 360 보유 여부 판별)
-2. **`02_matches.json`** — 특정 대회/시즌의 경기 목록 및 경기별 360 상태 (`match_status_360`)
-3. **`03_lineups.json`** — 팀별 선수 라인업, 등번호, 시간대별 포지션 변화 (`positions`)
-4. **`04_events.json`** — 경기 내 모든 이벤트 (패스, 슛, 압박, 볼회수, 좌표계 규칙, 슛 프리즈프레임)
-5. **`05_three_sixty.json`** — 360 프리즈프레임 스냅샷 (`event_uuid` 매핑, 익명 선수 위치, `teammate`/`actor`/`keeper`)
-6. **`COORDINATES_AND_RULES.md`** — 피치 좌표계, 시간 계산, 360 익명성 처리 규칙 요약
+  StatsBomb Open Data 5                .
 
 ---
 
-## ⚽ 핵심 요약: 꼭 짚고 넘어가야 할 4가지 규칙
+##    
 
-### 1. 피치 좌표계 (항상 왼쪽 → 오른쪽 공격)
+1. **`01_competitions.json`** —     (`match_available_360` 360   )
+2. **`02_matches.json`** —  /     360  (`match_status_360`)
+3. **`03_lineups.json`** —   , ,    (`positions`)
+4. **`04_events.json`** —     (, , , ,  ,  )
+5. **`05_three_sixty.json`** — 360   (`event_uuid` ,   , `teammate`/`actor`/`keeper`)
+6. **`COORDINATES_AND_RULES.md`** —  ,  , 360    
+
+---
+
+##   :     4 
+
+### 1.   (  →  )
 ```
-  y=0 (상단 터치라인)
-   ┌────────────────────────────────────────────────────────┐
-   │ [수비 진영]             [중원]             [공격 진영]  │
-   │ (Defensive Third)   (Middle Third)      (Final Third)  │
-   │                                                        │
-x=0│  우리팀 골대                                 상대팀 골대 │x=120
-   │                                                        │
-   │   0 <= x < 40         40 <= x < 80         80 <= x <=120│
-   └────────────────────────────────────────────────────────┘
-  y=80 (하단 터치라인)
+  y=0 ( )
+   
+    [ ]             []             [ ]  
+    (Defensive Third)   (Middle Third)      (Final Third)  
+                                                           
+x=0                                      x=120
+                                                           
+      0 <= x < 40         40 <= x < 80         80 <= x <=120
+   
+  y=80 ( )
 ```
-* **팀 구분 없음 / 전후반 구분 없음**: StatsBomb의 모든 이벤트 좌표는 **공을 소유한 팀 기준 항상 x=0에서 x=120 방향으로 공격**하도록 이미 정규화되어 있습니다.
-* 따라서 `attack_direction`을 별도로 계산하여 -1을 곱하거나 좌표를 뒤집을 필요가 없습니다.
+* **   /   **: StatsBomb    **     x=0 x=120  **   .
+*  `attack_direction`   -1     .
 
 ---
 
-### 2. 360 데이터 vs 일반 이벤트 데이터의 관계
-* **일반 이벤트 (`events/{id}.json`)**: 
-  - 특정 선수가 공을 터치/액션한 순간의 기록.
-  - 이벤트 주체 선수(`player.id`), 수신자(`pass.recipient.id`) 등 **선수 식별 가능**.
-* **360 데이터 (`three-sixty/{id}.json`)**: 
-  - 이벤트 발생 순간 카메라 시야(`visible_area`) 내에 있는 **모든 선수의 순간 위치 스냅샷**.
-  - `event_uuid`로 일반 이벤트의 `id`와 1:1 매핑됨.
-  - **선수 ID 없음 (익명)**: `{ "teammate": bool, "actor": bool, "keeper": bool, "location": [x, y] }` 로만 제공됨.
+### 2. 360  vs    
+* **  (`events/{id}.json`)**: 
+  -    /  .
+  -   (`player.id`), (`pass.recipient.id`)  **  **.
+* **360  (`three-sixty/{id}.json`)**: 
+  -     (`visible_area`)   **    **.
+  - `event_uuid`   `id` 1:1 .
+  - ** ID  ()**: `{ "teammate": bool, "actor": bool, "keeper": bool, "location": [x, y] }`  .
 
 ---
 
-### 3. 하이라이트 클립 윈도우 규칙
-* **골(Goal)**: 해당 포제션의 첫 이벤트부터 (골 발생 최대 30초 전 상한) ~ 골 직후 다음 이벤트(최대 4초)
-* **슈팅(Shot, xG >= 0.25)**: 해당 포제션의 첫 이벤트부터 (슈팅 발생 최대 15초 전 상한) ~ 슈팅 직후 다음 이벤트(최대 4초)
+### 3.    
+* **(Goal)**:     (   30  ) ~    ( 4)
+* **(Shot, xG >= 0.25)**:     (   15  ) ~    ( 4)
 
 ---
 
-### 4. 수비/압박 지표 (PPDA) 기준
-* PPDA = (상대팀이 시도한 패스 수 [수비팀 기준 x >= 40]) / (우리 팀의 수비 액션 수 [x >= 40])
-* 수비 액션: `Pressure`, `Tackle`, `Interception`, `Block`, `Clearance`
+### 4. /  (PPDA) 
+* PPDA = (    [  x >= 40]) / (     [x >= 40])
+*  : `Pressure`, `Tackle`, `Interception`, `Block`, `Clearance`
