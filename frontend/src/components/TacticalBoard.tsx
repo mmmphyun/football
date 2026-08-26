@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FormationPlayer,
   FramePlayer,
@@ -112,9 +112,25 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     return map;
   }, [passNodes]);
 
-  // 존 컬러 테마
+  // 존 점유율 최대치 및 호버 인터랙션
+  const maxZoneRatio = useMemo(() => {
+    if (!zones || zones.length === 0) return 0.025;
+    return Math.max(...zones.map((c) => c.ratio), 0.001);
+  }, [zones]);
+
+  const [hoveredZone, setHoveredZone] = useState<{
+    zone_x: number;
+    zone_y: number;
+    count: number;
+    ratio: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // 존 컬러 테마 (상대 강도 기반)
   const getZoneFill = (ratio: number) => {
-    const opacity = Math.min(0.7, ratio * 4 + 0.05);
+    const intensity = Math.min(1.0, ratio / maxZoneRatio);
+    const opacity = Math.max(0.04, intensity * 0.75);
     if (zoneColorTheme === "blue") return `rgba(59, 130, 246, ${opacity})`;
     if (zoneColorTheme === "orange") return `rgba(249, 115, 22, ${opacity})`;
     return `rgba(16, 185, 129, ${opacity})`;
@@ -215,24 +231,51 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               SVG_HEIGHT,
               MARGIN
             );
+            const intensity = cell.ratio / maxZoneRatio;
+            const isTopZone = intensity >= 0.65;
+            const isHovered =
+              hoveredZone?.zone_x === cell.zone_x &&
+              hoveredZone?.zone_y === cell.zone_y;
+
             return (
-              <g key={`zone-${cell.zone_x}-${cell.zone_y}`}>
+              <g
+                key={`zone-${cell.zone_x}-${cell.zone_y}`}
+                className="cursor-pointer"
+                onMouseEnter={() =>
+                  setHoveredZone({
+                    zone_x: cell.zone_x,
+                    zone_y: cell.zone_y,
+                    count: cell.count,
+                    ratio: cell.ratio,
+                    x: rect.x + rect.width / 2,
+                    y: rect.y + rect.height / 2,
+                  })
+                }
+                onMouseLeave={() => setHoveredZone(null)}
+              >
                 <rect
                   x={rect.x}
                   y={rect.y}
                   width={rect.width}
                   height={rect.height}
                   fill={getZoneFill(cell.ratio)}
-                  stroke="rgba(255, 255, 255, 0.05)"
-                  strokeWidth="1"
+                  stroke={
+                    isHovered
+                      ? "#ffffff"
+                      : isTopZone
+                      ? "rgba(255, 255, 255, 0.25)"
+                      : "rgba(255, 255, 255, 0.05)"
+                  }
+                  strokeWidth={isHovered ? "2" : "1"}
                 />
-                {cell.ratio > 0.02 && (
+                {isTopZone && (
                   <text
                     x={rect.x + rect.width / 2}
                     y={rect.y + rect.height / 2 + 4}
-                    fill="rgba(255, 255, 255, 0.85)"
-                    fontSize="13"
+                    fill="rgba(255, 255, 255, 0.9)"
+                    fontSize="12"
                     fontWeight="bold"
+                    fontFamily="monospace"
                     textAnchor="middle"
                   >
                     {(cell.ratio * 100).toFixed(1)}%
@@ -241,6 +284,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </g>
             );
           })}
+
 
         {/* 2-1. 빌드업 3분할 써드 (0~40, 40~80, 80~120) 오버레이 */}
         {showBuildup && (
@@ -912,6 +956,49 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 </>
               );
             })()}
+          </g>
+        )}
+
+        {/* 9. 존 점유율 마우스 호버 툴팁 */}
+        {showZones && hoveredZone && (
+          <g
+            transform={`translate(${Math.min(
+              SVG_WIDTH - 150,
+              Math.max(70, hoveredZone.x)
+            )}, ${Math.max(45, hoveredZone.y - 35)})`}
+          >
+            <rect
+              x="-70"
+              y="-28"
+              width="140"
+              height="36"
+              rx="6"
+              fill="rgba(15, 23, 42, 0.95)"
+              stroke="#38bdf8"
+              strokeWidth="1.5"
+              className="drop-shadow-xl"
+            />
+            <text
+              x="0"
+              y="-14"
+              fill="#94a3b8"
+              fontSize="10"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              구역 ({hoveredZone.zone_x}, {hoveredZone.zone_y})
+            </text>
+            <text
+              x="0"
+              y="1"
+              fill="#ffffff"
+              fontSize="12"
+              fontWeight="black"
+              fontFamily="monospace"
+              textAnchor="middle"
+            >
+              {(hoveredZone.ratio * 100).toFixed(2)}% ({hoveredZone.count}회)
+            </text>
           </g>
         )}
       </svg>
