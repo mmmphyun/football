@@ -36,6 +36,8 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   }
 
   const { formation, zones, passes, pressure, buildup, transitions } = currentTeam;
+  const formationPlayers = formation?.players || formation?.players_overall || [];
+  const formationName = formation?.formation_name || formation?.formation || "포메이션 정보 없음";
 
   return (
     <div className="space-y-6">
@@ -175,7 +177,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
         <div className="lg:col-span-7 space-y-3">
           <TacticalBoard
             showFormation={activeTab === "formation"}
-            formationPlayers={formation?.players}
+            formationPlayers={formationPlayers}
             showZones={activeTab === "zones"}
             zones={zones?.cells}
             zoneColorTheme={selectedTeamId === homeTeamId ? "blue" : "orange"}
@@ -194,8 +196,8 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
             <div className="space-y-4">
               <StatCard
                 title="기본 포메이션"
-                value={formation?.formation_name || "포메이션 정보 없음"}
-                subtitle={`선발 및 참여 선수: ${formation?.players?.length || 0}명`}
+                value={formationName}
+                subtitle={`선발 및 참여 선수: ${formationPlayers.length}명`}
                 badge="실측 평균 위치"
                 badgeColor="emerald"
               />
@@ -204,7 +206,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                   선수별 평균 참여 좌표
                 </h4>
                 <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                  {formation?.players?.map((p) => (
+                  {formationPlayers.map((p) => (
                     <div
                       key={p.player_id}
                       className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80"

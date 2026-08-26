@@ -37,8 +37,16 @@ export interface FormationPlayer {
 }
 
 export interface FormationSummary {
+  formation?: string;
   formation_name?: string;
-  players: FormationPlayer[];
+  players?: FormationPlayer[];
+  players_overall?: FormationPlayer[];
+  players_in_possession?: FormationPlayer[];
+  players_out_of_possession?: FormationPlayer[];
+  team_length?: number;
+  team_width?: number;
+  team_center_x?: number;
+  team_center_y?: number;
 }
 
 export interface ZoneCell {

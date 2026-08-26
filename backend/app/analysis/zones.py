@@ -120,14 +120,36 @@ def compute_zones_summary(
                 else:
                     out_poss_grid[row][col] += 0.5
 
+    norm_overall = _normalize_grid(overall_grid)
+    norm_in_poss = _normalize_grid(in_poss_grid)
+    norm_out_poss = _normalize_grid(out_poss_grid)
+
+    total_samples = int(sum(sum(row) for row in overall_grid))
+    cells: list[dict[str, Any]] = []
+    for r_idx in range(ZONES_Y):
+        for c_idx in range(ZONES_X):
+            cells.append(
+                {
+                    "zone_x": c_idx,
+                    "zone_y": r_idx,
+                    "count": int(overall_grid[r_idx][c_idx]),
+                    "ratio": norm_overall[r_idx][c_idx],
+                }
+            )
+
     return {
         "team_id": team_id,
+        "grid_cols": ZONES_X,
+        "grid_rows": ZONES_Y,
         "zones_x": ZONES_X,
         "zones_y": ZONES_Y,
         "cell_width": ZONE_CELL_WIDTH,
         "cell_height": ZONE_CELL_HEIGHT,
+        "total_samples": total_samples,
+        "cells": cells,
         "has_360": has_360_data,
-        "overall_grid": _normalize_grid(overall_grid),
-        "in_possession_grid": _normalize_grid(in_poss_grid),
-        "out_of_possession_grid": _normalize_grid(out_poss_grid),
+        "overall_grid": norm_overall,
+        "in_possession_grid": norm_in_poss,
+        "out_of_possession_grid": norm_out_poss,
     }
+
