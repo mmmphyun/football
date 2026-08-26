@@ -107,21 +107,15 @@ def compute_buildup_summary(
         else 0.0
     )
     mid_ratio = (
-        round(middle_third_starts / team_possession_count, 3)
-        if team_possession_count > 0
-        else 0.0
+        round(middle_third_starts / team_possession_count, 3) if team_possession_count > 0 else 0.0
     )
     att_ratio = (
         round(attacking_third_starts / team_possession_count, 3)
         if team_possession_count > 0
         else 0.0
     )
-    prog_pass_ratio = (
-        round(prog_passes / total_passes, 3) if total_passes > 0 else 0.0
-    )
-    prog_carry_ratio = (
-        round(prog_carries / total_carries, 3) if total_carries > 0 else 0.0
-    )
+    prog_pass_ratio = round(prog_passes / total_passes, 3) if total_passes > 0 else 0.0
+    prog_carry_ratio = round(prog_carries / total_carries, 3) if total_carries > 0 else 0.0
 
     return {
         "team_id": team_id,
@@ -150,4 +144,3 @@ def compute_buildup_summary(
             "progressive_carry_ratio": prog_carry_ratio,
         },
     }
-

@@ -152,4 +152,3 @@ def compute_zones_summary(
         "in_possession_grid": norm_in_poss,
         "out_of_possession_grid": norm_out_poss,
     }
-

@@ -109,4 +109,3 @@ def compute_pressure_summary(
         },
         "pressure_events": pressure_events[:100],
     }
-

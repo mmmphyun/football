@@ -122,7 +122,6 @@ def compute_pass_network(
             }
         )
 
-
     pass_accuracy = round(completed_passes / total_passes, 3) if total_passes > 0 else 0.0
     prog_pass_ratio = round(progressive_passes / total_passes, 3) if total_passes > 0 else 0.0
     avg_delta_x = round(total_delta_x / total_passes, 2) if total_passes > 0 else 0.0
