@@ -106,12 +106,11 @@ export interface PassNetworkSummary {
   edges: PassEdge[];
 }
 
-export interface PressureSummary {
-  ppda: number | null;
-  high_press_events: number;
-  total_pressure_events: number;
-  pressure_per_min: number;
-  turnovers_forced_att_third: number;
+export interface PressureEvent {
+  x: number;
+  y: number;
+  type: string;
+  is_high_press: boolean;
 }
 
 export interface BuildupSummary {
@@ -142,6 +141,29 @@ export interface BuildupSummary {
   };
 }
 
+export interface PressureSummary {
+  ppda: number | null;
+  high_press_events: number;
+  total_pressure_events: number;
+  pressure_per_min: number;
+  turnovers_forced_att_third: number;
+  pressure_events?: PressureEvent[];
+  pressures_by_third?: {
+    defensive_third: number;
+    middle_third: number;
+    attacking_third: number;
+  };
+}
+
+export interface TransitionSequence {
+  start: [number, number];
+  end: [number, number];
+  sec: number;
+  speed: number;
+  is_fast: boolean;
+  reached_final_third: boolean;
+}
+
 export interface TransitionsSummary {
   team_id?: number;
   turnovers_won?: number;
@@ -152,6 +174,7 @@ export interface TransitionsSummary {
   slow_transitions?: number;
   fast_transition_ratio?: number;
   avg_transition_speed_mps?: number;
+  transition_sequences?: TransitionSequence[];
 }
 
 export interface TeamSummary {
