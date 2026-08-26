@@ -60,4 +60,42 @@ describe("interpolateFrames", () => {
     expect(res?.players[0].location[0]).toBeCloseTo(20.0);
     expect(res?.players[0].location[1]).toBeCloseTo(30.0);
   });
+
+  it("matches anonymous players using nearest neighbor greedy tracking", () => {
+    const anonFrames: Frame[] = [
+      {
+        frame_index: 0,
+        timestamp_sec: 10.0,
+        minute: 0,
+        second: 10,
+        players: [
+          { is_teammate: true, is_actor: false, is_keeper: false, location: [10.0, 20.0] },
+          { is_teammate: false, is_actor: false, is_keeper: false, location: [80.0, 60.0] },
+        ],
+      },
+      {
+        frame_index: 1,
+        timestamp_sec: 20.0,
+        minute: 0,
+        second: 20,
+        players: [
+          { is_teammate: true, is_actor: false, is_keeper: false, location: [14.0, 22.0] },
+          { is_teammate: false, is_actor: false, is_keeper: false, location: [82.0, 62.0] },
+        ],
+      },
+    ];
+
+    const res = interpolateFrames(anonFrames, 15.0);
+    expect(res).not.toBeNull();
+    expect(res?.players.length).toBe(2);
+
+    const tm = res?.players.find((p) => p.is_teammate);
+    const opp = res?.players.find((p) => !p.is_teammate);
+
+    expect(tm?.location[0]).toBeCloseTo(12.0);
+    expect(tm?.location[1]).toBeCloseTo(21.0);
+    expect(opp?.location[0]).toBeCloseTo(81.0);
+    expect(opp?.location[1]).toBeCloseTo(61.0);
+  });
 });
+
