@@ -272,23 +272,29 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                 </h4>
                 <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                   {passes?.edges?.map((e, idx) => {
-                    const src = passes.nodes.find((n) => n.player_id === e.passer_id);
-                    const dst = passes.nodes.find((n) => n.player_id === e.recipient_id);
+                    const passerId = e.passer_id ?? e.source_id;
+                    const recipientId = e.recipient_id ?? e.target_id;
+                    const count = e.count ?? e.pass_count ?? 0;
+                    const progCount = e.progressive_count ?? 0;
+                    const src = passes.nodes.find((n) => n.player_id === passerId);
+                    const dst = passes.nodes.find((n) => n.player_id === recipientId);
+                    const srcName = src?.player_name ?? e.source_name ?? String(passerId);
+                    const dstName = dst?.player_name ?? e.target_name ?? String(recipientId);
                     return (
                       <div
                         key={idx}
                         className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80"
                       >
                         <span className="text-slate-200">
-                          {src?.player_name.split(" ").pop()} → {dst?.player_name.split(" ").pop()}
+                          {srcName.split(" ").pop()} → {dstName.split(" ").pop()}
                         </span>
                         <div className="flex items-center space-x-2">
                           <span className="font-mono text-emerald-400 font-bold">
-                            {e.count}회
+                            {count}회
                           </span>
-                          {e.progressive_count > 0 && (
+                          {progCount > 0 && (
                             <span className="text-[10px] text-indigo-400">
-                              (전진 {e.progressive_count})
+                              (전진 {progCount})
                             </span>
                           )}
                         </div>

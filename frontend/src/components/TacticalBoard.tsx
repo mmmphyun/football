@@ -293,13 +293,23 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         {showPassNetwork && passEdges && (
           <g>
             {passEdges.map((edge, idx) => {
-              const src = nodeMap.get(edge.passer_id);
-              const dst = nodeMap.get(edge.recipient_id);
+              const passerId = edge.passer_id ?? edge.source_id;
+              const recipientId = edge.recipient_id ?? edge.target_id;
+              if (passerId === undefined || recipientId === undefined) return null;
+
+              const src = nodeMap.get(passerId);
+              const dst = nodeMap.get(recipientId);
               if (!src || !dst) return null;
 
-              const [x1, y1] = toSvg(src.x, src.y);
-              const [x2, y2] = toSvg(dst.x, dst.y);
-              const strokeWidth = Math.max(1.5, Math.min(8, edge.count * 0.7));
+              const srcX = Math.max(4, Math.min(116, src.x));
+              const srcY = Math.max(4, Math.min(76, src.y));
+              const dstX = Math.max(4, Math.min(116, dst.x));
+              const dstY = Math.max(4, Math.min(76, dst.y));
+
+              const [x1, y1] = toSvg(srcX, srcY);
+              const [x2, y2] = toSvg(dstX, dstY);
+              const edgeCount = edge.count ?? edge.pass_count ?? 1;
+              const strokeWidth = Math.max(1.5, Math.min(8, edgeCount * 0.7));
 
               return (
                 <line
@@ -320,8 +330,13 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         {showPassNetwork && passNodes && (
           <g>
             {passNodes.map((n) => {
-              const [sx, sy] = toSvg(n.x, n.y);
-              const r = Math.max(12, Math.min(22, 10 + n.pass_count * 0.3));
+              const clampedX = Math.max(4, Math.min(116, n.x));
+              const clampedY = Math.max(4, Math.min(76, n.y));
+              const [sx, sy] = toSvg(clampedX, clampedY);
+
+              const passCount = n.pass_count ?? n.pass_completions ?? n.pass_attempts ?? 0;
+              const r = Math.max(12, Math.min(22, 10 + passCount * 0.3));
+              const textY = clampedY > 68 ? sy - r - 4 : sy + r + 12;
 
               return (
                 <g key={`pass-node-${n.player_id}`} className="cursor-pointer">
@@ -345,7 +360,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   </text>
                   <text
                     x={sx}
-                    y={sy + r + 12}
+                    y={textY}
                     fill="#e0f2fe"
                     fontSize="10"
                     fontWeight="medium"
@@ -363,7 +378,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         {showFormation && formationPlayers && (
           <g>
             {formationPlayers.map((fp) => {
-              const [sx, sy] = toSvg(fp.x, fp.y);
+              const clampedX = Math.max(4, Math.min(116, fp.x));
+              const clampedY = Math.max(4, Math.min(76, fp.y));
+              const [sx, sy] = toSvg(clampedX, clampedY);
+              const textY = clampedY > 68 ? sy - 18 : sy + 26;
+
               return (
                 <g key={`formation-player-${fp.player_id}`}>
                   <circle
@@ -387,7 +406,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   </text>
                   <text
                     x={sx}
-                    y={sy + 26}
+                    y={textY}
                     fill="#d1fae5"
                     fontSize="10"
                     textAnchor="middle"
