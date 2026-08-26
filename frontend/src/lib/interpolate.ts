@@ -83,19 +83,29 @@ export function interpolateFrames(
     ballLoc = f1.ball_location || f2.ball_location;
   }
 
-  // 2. 선수 위치 보간 (player_id 매핑 기반)
+  // 2. 선수 위치 보간 (ID 매칭 우선 + 익명 선수 그리디 근접 거리 매칭)
   const f2PlayerMap = new Map<number, FramePlayer>();
+  const f2Anonymous: FramePlayer[] = [];
+
   for (const p of f2.players) {
-    if (p.player_id !== undefined) {
+    if (p.player_id !== undefined && p.player_id !== null) {
       f2PlayerMap.set(p.player_id, p);
+    } else {
+      f2Anonymous.push(p);
     }
   }
 
   const interpolatedPlayers: FramePlayer[] = [];
   const processedF2Ids = new Set<number>();
+  const f1Anonymous: FramePlayer[] = [];
 
+  // 2-1. player_id 기준 1:1 매칭
   for (const p1 of f1.players) {
-    if (p1.player_id !== undefined && f2PlayerMap.has(p1.player_id)) {
+    if (
+      p1.player_id !== undefined &&
+      p1.player_id !== null &&
+      f2PlayerMap.has(p1.player_id)
+    ) {
       const p2 = f2PlayerMap.get(p1.player_id)!;
       processedF2Ids.add(p1.player_id);
 
@@ -119,16 +129,72 @@ export function interpolateFrames(
         location: loc,
         pred_location: predLoc,
       });
+    } else if (p1.player_id === undefined || p1.player_id === null) {
+      f1Anonymous.push(p1);
     } else {
-      // f2에 매칭 선수가 없으면 f1 상태 유지
+      // f2에 없는 선수는 f1 위치 유지
       interpolatedPlayers.push(p1);
     }
   }
 
-  // f2에 새로 등장한 선수 추가
+  // 2-2. 익명(Anonymous/Inferred) 선수 간 유클리드 거리 기반 그리디 근접 매칭
+  const usedF2AnonIdx = new Set<number>();
+
+  for (const p1 of f1Anonymous) {
+    let bestIdx = -1;
+    let minDist = 35.0; // 35m 이내 가장 가까운 동일 팀 선수와 매칭
+
+    for (let j = 0; j < f2Anonymous.length; j++) {
+      if (usedF2AnonIdx.has(j)) continue;
+      const p2 = f2Anonymous[j];
+
+      // 동일 팀 및 동일 키퍼 여부 일치 확인
+      if (p1.is_teammate !== p2.is_teammate || p1.is_keeper !== p2.is_keeper) {
+        continue;
+      }
+
+      const dist = Math.hypot(
+        p1.location[0] - p2.location[0],
+        p1.location[1] - p2.location[1]
+      );
+
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+
+    if (bestIdx !== -1) {
+      usedF2AnonIdx.add(bestIdx);
+      const p2 = f2Anonymous[bestIdx];
+      const loc: [number, number] = [
+        lerp(p1.location[0], p2.location[0], clampedAlpha),
+        lerp(p1.location[1], p2.location[1], clampedAlpha),
+      ];
+
+      interpolatedPlayers.push({
+        ...p1,
+        location: loc,
+      });
+    } else {
+      // 매칭되지 않은 익명 선수는 현 위치 유지
+      interpolatedPlayers.push(p1);
+    }
+  }
+
+  // 2-3. f2에 새로 등장한 선수 추가
   for (const p2 of f2.players) {
-    if (p2.player_id !== undefined && !processedF2Ids.has(p2.player_id)) {
+    if (
+      p2.player_id !== undefined &&
+      p2.player_id !== null &&
+      !processedF2Ids.has(p2.player_id)
+    ) {
       interpolatedPlayers.push(p2);
+    }
+  }
+  for (let j = 0; j < f2Anonymous.length; j++) {
+    if (!usedF2AnonIdx.has(j)) {
+      interpolatedPlayers.push(f2Anonymous[j]);
     }
   }
 
