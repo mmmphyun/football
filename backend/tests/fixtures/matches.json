@@ -1,0 +1,54 @@
+[
+  {
+    "match_id": 3788758,
+    "match_date": "2021-06-17",
+    "kick_off": "13:00:00.000",
+    "competition": {
+      "competition_id": 55,
+      "country_name": "Europe",
+      "competition_name": "UEFA Euro"
+    },
+    "season": {
+      "season_id": 282,
+      "season_name": "2024"
+    },
+    "home_team": {
+      "home_team_id": 911,
+      "home_team_name": "Ukraine",
+      "home_team_gender": "male",
+      "home_team_group": "Group C",
+      "country": {
+        "id": 238,
+        "name": "Ukraine"
+      },
+      "managers": [
+        {
+          "id": 2303,
+          "name": "Andrii Shevchenko"
+        }
+      ]
+    },
+    "away_team": {
+      "away_team_id": 2358,
+      "away_team_name": "North Macedonia",
+      "away_team_gender": "male",
+      "away_team_group": "Group C",
+      "country": {
+        "id": 135,
+        "name": "Macedonia, Republic of"
+      },
+      "managers": [
+        {
+          "id": 4172,
+          "name": "Igor Angelovski"
+        }
+      ]
+    },
+    "home_score": 2,
+    "away_score": 1,
+    "match_status": "available",
+    "match_status_360": "available",
+    "last_updated": "2026-05-09T08:43:52.942714",
+    "last_updated_360": "2026-05-09T08:47:21.438061"
+  }
+]
