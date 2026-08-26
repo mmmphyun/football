@@ -1,0 +1,548 @@
+[
+  {
+    "id": "e0000001-0000-0000-0000-000000000001",
+    "index": 1,
+    "period": 1,
+    "timestamp": "00:00:00.000",
+    "minute": 0,
+    "second": 0,
+    "type": {
+      "id": 35,
+      "name": "Starting XI"
+    },
+    "possession": 1,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "tactics": {
+      "formation": 433,
+      "lineup": [
+        {
+          "player": {
+            "id": 11394,
+            "name": "Georgiy Bushchan"
+          },
+          "position": {
+            "id": 1,
+            "name": "Goalkeeper"
+          },
+          "jersey_number": 1
+        },
+        {
+          "player": {
+            "id": 3575,
+            "name": "Oleksandr Zinchenko"
+          },
+          "position": {
+            "id": 15,
+            "name": "Left Center Midfield"
+          },
+          "jersey_number": 17
+        },
+        {
+          "player": {
+            "id": 30650,
+            "name": "Mykola Shaparenko"
+          },
+          "position": {
+            "id": 13,
+            "name": "Right Center Midfield"
+          },
+          "jersey_number": 10
+        },
+        {
+          "player": {
+            "id": 10655,
+            "name": "Andriy Yarmolenko"
+          },
+          "position": {
+            "id": 24,
+            "name": "Right Wing"
+          },
+          "jersey_number": 7
+        }
+      ]
+    }
+  },
+  {
+    "id": "e0000001-0000-0000-0000-000000000002",
+    "index": 2,
+    "period": 1,
+    "timestamp": "00:00:00.000",
+    "minute": 0,
+    "second": 0,
+    "type": {
+      "id": 35,
+      "name": "Starting XI"
+    },
+    "possession": 1,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "tactics": {
+      "formation": 352,
+      "lineup": [
+        {
+          "player": {
+            "id": 21345,
+            "name": "Stole Dimitrievski"
+          },
+          "position": {
+            "id": 1,
+            "name": "Goalkeeper"
+          },
+          "jersey_number": 1
+        },
+        {
+          "player": {
+            "id": 30644,
+            "name": "Darko Velkovski"
+          },
+          "position": {
+            "id": 4,
+            "name": "Center Back"
+          },
+          "jersey_number": 14
+        },
+        {
+          "player": {
+            "id": 4713,
+            "name": "Ezgjan Alioski"
+          },
+          "position": {
+            "id": 6,
+            "name": "Left Back"
+          },
+          "jersey_number": 8
+        }
+      ]
+    }
+  },
+  {
+    "id": "098eff63-9c94-4009-9c8a-b9b48e945e72",
+    "index": 120,
+    "period": 1,
+    "timestamp": "00:03:45.120",
+    "minute": 3,
+    "second": 45,
+    "type": {
+      "id": 30,
+      "name": "Pass"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "play_pattern": {
+      "id": 1,
+      "name": "Regular Play"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 3575,
+      "name": "Oleksandr Zinchenko"
+    },
+    "position": {
+      "id": 15,
+      "name": "Left Center Midfield"
+    },
+    "location": [61.0, 40.1],
+    "duration": 1.45,
+    "pass": {
+      "recipient": {
+        "id": 30650,
+        "name": "Mykola Shaparenko"
+      },
+      "length": 18.2,
+      "angle": 0.45,
+      "height": {
+        "id": 1,
+        "name": "Ground Pass"
+      },
+      "end_location": [76.5, 48.0],
+      "outcome": null
+    }
+  },
+  {
+    "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+    "index": 121,
+    "period": 1,
+    "timestamp": "00:03:46.570",
+    "minute": 3,
+    "second": 46,
+    "type": {
+      "id": 43,
+      "name": "Carry"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 30650,
+      "name": "Mykola Shaparenko"
+    },
+    "location": [76.5, 48.0],
+    "duration": 2.1,
+    "carry": {
+      "end_location": [85.0, 46.5]
+    }
+  },
+  {
+    "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+    "index": 122,
+    "period": 1,
+    "timestamp": "00:03:47.000",
+    "minute": 3,
+    "second": 47,
+    "type": {
+      "id": 17,
+      "name": "Pressure"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 4713,
+      "name": "Ezgjan Alioski"
+    },
+    "location": [84.0, 45.0],
+    "duration": 1.2
+  },
+  {
+    "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7f",
+    "index": 123,
+    "period": 1,
+    "timestamp": "00:03:49.000",
+    "minute": 3,
+    "second": 49,
+    "type": {
+      "id": 30,
+      "name": "Pass"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 30650,
+      "name": "Mykola Shaparenko"
+    },
+    "location": [85.0, 46.5],
+    "duration": 1.2,
+    "pass": {
+      "recipient": {
+        "id": 10655,
+        "name": "Andriy Yarmolenko"
+      },
+      "length": 25.0,
+      "angle": -0.4,
+      "end_location": [108.5, 38.0],
+      "outcome": null
+    }
+  },
+  {
+    "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+    "index": 125,
+    "period": 1,
+    "timestamp": "00:03:52.000",
+    "minute": 3,
+    "second": 52,
+    "type": {
+      "id": 16,
+      "name": "Shot"
+    },
+    "possession": 8,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "play_pattern": {
+      "id": 1,
+      "name": "Regular Play"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 10655,
+      "name": "Andriy Yarmolenko"
+    },
+    "location": [108.5, 38.0],
+    "duration": 0.8,
+    "shot": {
+      "statsbomb_xg": 0.38,
+      "end_location": [120.0, 42.1, 1.2],
+      "outcome": {
+        "id": 97,
+        "name": "Goal"
+      },
+      "body_part": {
+        "id": 38,
+        "name": "Left Foot"
+      },
+      "type": {
+        "id": 87,
+        "name": "Open Play"
+      },
+      "freeze_frame": [
+        {
+          "location": [118.0, 40.0],
+          "player": {
+            "id": 21345,
+            "name": "Stole Dimitrievski"
+          },
+          "position": {
+            "id": 1,
+            "name": "Goalkeeper"
+          },
+          "teammate": false
+        },
+        {
+          "location": [112.0, 39.5],
+          "player": {
+            "id": 30644,
+            "name": "Darko Velkovski"
+          },
+          "position": {
+            "id": 4,
+            "name": "Center Back"
+          },
+          "teammate": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
+    "index": 210,
+    "period": 1,
+    "timestamp": "00:08:12.300",
+    "minute": 8,
+    "second": 12,
+    "type": {
+      "id": 2,
+      "name": "Ball Recovery"
+    },
+    "possession": 15,
+    "possession_team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 4713,
+      "name": "Ezgjan Alioski"
+    },
+    "location": [32.0, 15.0]
+  },
+  {
+    "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9b",
+    "index": 211,
+    "period": 1,
+    "timestamp": "00:08:15.000",
+    "minute": 8,
+    "second": 15,
+    "type": {
+      "id": 30,
+      "name": "Pass"
+    },
+    "possession": 15,
+    "possession_team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 4713,
+      "name": "Ezgjan Alioski"
+    },
+    "location": [32.0, 15.0],
+    "duration": 2.5,
+    "pass": {
+      "recipient": {
+        "id": 30644,
+        "name": "Darko Velkovski"
+      },
+      "length": 55.0,
+      "angle": 0.3,
+      "end_location": [85.0, 35.0],
+      "outcome": null
+    }
+  },
+  {
+    "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9c",
+    "index": 212,
+    "period": 1,
+    "timestamp": "00:08:17.000",
+    "minute": 8,
+    "second": 17,
+    "type": {
+      "id": 16,
+      "name": "Shot"
+    },
+    "possession": 15,
+    "possession_team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 30644,
+      "name": "Darko Velkovski"
+    },
+    "location": [95.0, 40.0],
+    "duration": 0.7,
+    "shot": {
+      "statsbomb_xg": 0.28,
+      "end_location": [119.0, 38.5, 0.5],
+      "outcome": {
+        "id": 100,
+        "name": "Saved"
+      }
+    }
+  },
+  {
+    "id": "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+    "index": 300,
+    "period": 1,
+    "timestamp": "00:15:00.000",
+    "minute": 15,
+    "second": 0,
+    "type": {
+      "id": 30,
+      "name": "Pass"
+    },
+    "possession": 25,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 3575,
+      "name": "Oleksandr Zinchenko"
+    },
+    "location": [25.0, 30.0],
+    "duration": 1.0,
+    "pass": {
+      "recipient": {
+        "id": 10655,
+        "name": "Andriy Yarmolenko"
+      },
+      "length": 10.0,
+      "angle": 0.0,
+      "end_location": [35.0, 30.0],
+      "outcome": {
+        "id": 9,
+        "name": "Incomplete"
+      }
+    }
+  },
+  {
+    "id": "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0c",
+    "index": 301,
+    "period": 1,
+    "timestamp": "00:15:01.000",
+    "minute": 15,
+    "second": 1,
+    "type": {
+      "id": 10,
+      "name": "Interception"
+    },
+    "possession": 25,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 2358,
+      "name": "North Macedonia"
+    },
+    "player": {
+      "id": 4713,
+      "name": "Ezgjan Alioski"
+    },
+    "location": [35.0, 30.0]
+  },
+  {
+    "id": "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+    "index": 400,
+    "period": 2,
+    "timestamp": "00:45:00.000",
+    "minute": 45,
+    "second": 0,
+    "type": {
+      "id": 30,
+      "name": "Pass"
+    },
+    "possession": 30,
+    "possession_team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "team": {
+      "id": 911,
+      "name": "Ukraine"
+    },
+    "player": {
+      "id": 10655,
+      "name": "Andriy Yarmolenko"
+    },
+    "location": [60.0, 40.0],
+    "duration": 1.0,
+    "pass": {
+      "recipient": {
+        "id": 3575,
+        "name": "Oleksandr Zinchenko"
+      },
+      "length": 15.0,
+      "angle": 3.14,
+      "end_location": [45.0, 40.0],
+      "outcome": null
+    }
+  }
+]

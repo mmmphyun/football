@@ -1,0 +1,175 @@
+[
+  {
+    "team_id": 911,
+    "team_name": "Ukraine",
+    "lineup": [
+      {
+        "player_id": 11394,
+        "player_name": "Georgiy Bushchan",
+        "player_nickname": null,
+        "jersey_number": 1,
+        "country": {
+          "id": 238,
+          "name": "Ukraine"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 1,
+            "position": "Goalkeeper",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      },
+      {
+        "player_id": 3575,
+        "player_name": "Oleksandr Zinchenko",
+        "player_nickname": null,
+        "jersey_number": 17,
+        "country": {
+          "id": 238,
+          "name": "Ukraine"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 15,
+            "position": "Left Center Midfield",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      },
+      {
+        "player_id": 30650,
+        "player_name": "Mykola Shaparenko",
+        "player_nickname": null,
+        "jersey_number": 10,
+        "country": {
+          "id": 238,
+          "name": "Ukraine"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 13,
+            "position": "Right Center Midfield",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      },
+      {
+        "player_id": 10655,
+        "player_name": "Andriy Yarmolenko",
+        "player_nickname": null,
+        "jersey_number": 7,
+        "country": {
+          "id": 238,
+          "name": "Ukraine"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 24,
+            "position": "Right Wing",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "team_id": 2358,
+    "team_name": "North Macedonia",
+    "lineup": [
+      {
+        "player_id": 21345,
+        "player_name": "Stole Dimitrievski",
+        "player_nickname": null,
+        "jersey_number": 1,
+        "country": {
+          "id": 135,
+          "name": "Macedonia, Republic of"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 1,
+            "position": "Goalkeeper",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      },
+      {
+        "player_id": 30644,
+        "player_name": "Darko Velkovski",
+        "player_nickname": null,
+        "jersey_number": 14,
+        "country": {
+          "id": 135,
+          "name": "Macedonia, Republic of"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 4,
+            "position": "Center Back",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      },
+      {
+        "player_id": 4713,
+        "player_name": "Ezgjan Alioski",
+        "player_nickname": null,
+        "jersey_number": 8,
+        "country": {
+          "id": 135,
+          "name": "Macedonia, Republic of"
+        },
+        "cards": [],
+        "positions": [
+          {
+            "position_id": 6,
+            "position": "Left Back",
+            "from": "00:00",
+            "to": null,
+            "from_period": 1,
+            "to_period": null,
+            "start_reason": "Starting XI",
+            "end_reason": null
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -130,8 +130,26 @@ def init_db(db_path: Path | str | None = None) -> None:
 def save_competitions(
     competitions: list[dict[str, Any]],
     db_path: Path | str | None = None,
-) -> None:
+) -> int:
     """대회 메타데이터 목록을 저장하거나 갱신합니다."""
+    records = []
+    for c in competitions:
+        has_360 = (
+            1 if (c.get("has_360") in (1, True) or c.get("match_available_360") is not None) else 0
+        )
+        records.append(
+            {
+                "competition_id": c["competition_id"],
+                "season_id": c["season_id"],
+                "name": c.get("name") or c.get("competition_name", ""),
+                "season_name": c.get("season_name", ""),
+                "country": c.get("country") or c.get("country_name", ""),
+                "match_count": c.get("match_count", 0),
+                "has_360": has_360,
+                "processed_at": c.get("processed_at"),
+            }
+        )
+
     with get_db(db_path) as conn:
         conn.executemany(
             """
@@ -150,8 +168,9 @@ def save_competitions(
                 has_360 = excluded.has_360,
                 processed_at = excluded.processed_at
             """,
-            competitions,
+            records,
         )
+    return len(records)
 
 
 def get_competitions(db_path: Path | str | None = None) -> list[dict[str, Any]]:
@@ -171,8 +190,55 @@ def get_competitions(db_path: Path | str | None = None) -> list[dict[str, Any]]:
 def save_matches(
     matches: list[dict[str, Any]],
     db_path: Path | str | None = None,
-) -> None:
+) -> int:
     """경기 메타데이터 목록을 저장하거나 갱신합니다."""
+    records = []
+    for m in matches:
+        comp_id = m.get("competition_id")
+        if comp_id is None:
+            comp_id = m.get("competition", {}).get("competition_id", 0)
+
+        season_id = m.get("season_id")
+        if season_id is None:
+            season_id = m.get("season", {}).get("season_id", 0)
+
+        home_team = m.get("home_team")
+        if isinstance(home_team, dict):
+            home_team_name = home_team.get("home_team_name", "")
+            home_team_id = home_team.get("home_team_id", 0)
+        else:
+            home_team_name = home_team or ""
+            home_team_id = m.get("home_team_id", 0)
+
+        away_team = m.get("away_team")
+        if isinstance(away_team, dict):
+            away_team_name = away_team.get("away_team_name", "")
+            away_team_id = away_team.get("away_team_id", 0)
+        else:
+            away_team_name = away_team or ""
+            away_team_id = m.get("away_team_id", 0)
+
+        has_360 = (
+            1 if (m.get("has_360") in (1, True) or m.get("match_status_360") == "available") else 0
+        )
+
+        records.append(
+            {
+                "match_id": m["match_id"],
+                "competition_id": comp_id,
+                "season_id": season_id,
+                "home_team": home_team_name,
+                "away_team": away_team_name,
+                "home_team_id": home_team_id,
+                "away_team_id": away_team_id,
+                "home_score": m.get("home_score"),
+                "away_score": m.get("away_score"),
+                "match_date": m.get("match_date", ""),
+                "has_360": has_360,
+                "status": m.get("status", "raw"),
+            }
+        )
+
     with get_db(db_path) as conn:
         conn.executemany(
             """
@@ -186,6 +252,8 @@ def save_matches(
                 :home_score, :away_score, :match_date, :has_360, :status
             )
             ON CONFLICT(match_id) DO UPDATE SET
+                competition_id = excluded.competition_id,
+                season_id = excluded.season_id,
                 home_team = excluded.home_team,
                 away_team = excluded.away_team,
                 home_team_id = excluded.home_team_id,
@@ -196,8 +264,9 @@ def save_matches(
                 has_360 = excluded.has_360,
                 status = excluded.status
             """,
-            matches,
+            records,
         )
+    return len(records)
 
 
 def get_matches(

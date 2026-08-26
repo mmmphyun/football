@@ -106,10 +106,11 @@ git checkout -b feat/#4-backend-tests
 ```
 
 ### 2) 개발 대상 파일
-- [ ] `backend/tests/fixtures/`: competitions, matches, events, lineups, three-sixty 축소 픽스처
-- [ ] `backend/tests/test_analysis.py`: 8종 분석 지표 단위 테스트
-- [ ] `backend/tests/test_highlights.py`: 윈도우 클리핑 및 프레임 빌더 테스트
-- [ ] `backend/tests/test_api.py`: FastAPI 엔드포인트 스모크 테스트
+- [x] `backend/tests/fixtures/`: competitions, matches, events, lineups, three-sixty 축소 픽스처
+- [x] `backend/tests/test_analysis.py`: 8종 분석 지표 단위 테스트
+- [x] `backend/tests/test_highlights.py`: 윈도우 클리핑 및 프레임 빌더 테스트
+- [x] `backend/tests/test_storage_pipeline.py`: 스토리지 CRUD 및 데이터 처리 파이프라인 테스트
+- [x] `backend/tests/test_api.py`: FastAPI 엔드포인트 스모크 테스트
 
 ### 3) 로컬 검증
 ```powershell
