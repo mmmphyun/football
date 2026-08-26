@@ -1,118 +1,82 @@
-# StatsBomb 축구 전술 분석 웹 서비스
+# StatsBomb 기반 축구 전술 분석 및 인터랙티브 바둑판 시각화 시스템
 
-StatsBomb Open Data를 기반으로 경기별 팀 전술 기조와 하이라이트 장면의 선수 움직임을 바둑판(그리드) 형태로 렌더링하는 인터랙티브 웹 서비스입니다.
+StatsBomb Open Data(이벤트 및 360 프리즈프레임)를 수집·분석하여 경기별 팀 전술 기조를 요약하고, 하이라이트 장면의 선수 움직임을 인터랙티브 바둑판(D3 SVG 피치)으로 시각화하는 웹 서비스입니다.
+
+---
 
 ## 주요 기능
 
-- **경기 전술 기조 요약**: 포메이션(소유/비소유 평균 위치), 구역 점유율 히트맵, 패스 네트워크, 선수 이동 벡터, 빌드업 방향, 압박 지수(PPDA), 전환(트랜지션) 속도
-- **하이라이트 자동 추출**: 골·페널티 + xG ≥ 0.25 슈팅을 포제션 기반 클립 윈도우로 자동 선정
-- **바둑판 렌더링**: 120×80 좌표를 그리드로 나눈 피치 위에 선수 토큰·이동 벡터·점유 히트맵을 표시
-- **움직임 예측(360 전용)**: 현재 속도 기반 +2초 단기 외삽을 고스트 토큰(점선)으로 표시
-- **인터랙티브 재생**: 하이라이트 프레임 재생/일시정지, 속도 조절, 타임라인 스크러버, 프레임 스텝
+1. **경기별 전술 기조 요약 (Tactical Summary)**
+   - 소유/비소유 상태별 포메이션 평균 위치
+   - 12x8 그리드(10m 셀) 구역 점유 강도 히트맵
+   - 패스 네트워크 (상위 15개 엣지, 노드 터치 수, 팀 전진도)
+   - 상대 진영(x >= 40) 기준 PPDA 및 분당 압박 강도
+   - 빌드업 방향 및 포제션 시작 3분할(Defensive/Middle/Final Third) 분석
+   - 공 회수 후 8초 이내 역습 전환 속도
+
+2. **하이라이트 인터랙티브 바둑판 재생기 (Highlight Tactical Board)**
+   - 골 및 높은 기대득점(xG >= 0.25) 장면 자동 추출 및 포제션 윈도우 클리핑
+   - 360 실측 위치 스냅샷 및 카메라 시야 다각형(visible_area) 오버레이
+   - 선수별 속도 벡터 및 +2초 단기 외삽 고스트 토큰(Ghost Vector)
+   - 22명 포메이션 앵커 추론 토글 (카메라 밖 미관측 선수 가상 배치)
+   - 재생/일시정지, 재생 속도 조절(0.5x, 1x, 2x), 타임라인 스크러버
+
+---
 
 ## 기술 스택
 
-| 영역 | 스택 |
-| --- | --- |
-| 백엔드 | Python 3.13, FastAPI, pandas, numpy, SQLite, httpx |
-| 프론트엔드 | React 18, TypeScript, Vite, Tailwind CSS, D3 (SVG) |
-| 인프라 | Docker Compose (backend :8000, frontend :3000) |
+- **Backend**: Python 3.13+, FastAPI, SQLite, uv, Pydantic, pytest, Ruff
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, D3.js (SVG 피치 렌더링)
+- **Infrastructure**: Docker, Docker Compose, GitHub Actions CI
 
-## 시작하기
+---
 
-### 1. Docker Compose로 실행
+## 프로젝트 문서 안내
 
-```bash
-docker compose up --build -d
+모든 기획, 도메인 스펙 가이드, 실행 체크리스트는 `docs/` 디렉터리 내에서 관리됩니다.
+
+- [v3 통합 구현 명세서](docs/IMPLEMENTATION_PLAN_V3.md)
+- [Phase별 실행 체크리스트 (런북)](docs/CHECKLIST.md)
+- [진행 현황판](docs/PROGRESS.md)
+- [StatsBomb 5대 핵심 스펙 및 예시 가이드](docs/statsbomb_spec_examples/README.md)
+- [에이전트 개발 규칙](AGENTS.md)
+
+---
+
+## 로컬 개발 환경 설정
+
+### 1. 백엔드 설정 (uv 기반)
+```powershell
+# 의존성 설치
+uv pip install -r backend/requirements.txt
+
+# 린트 검사
+uv run ruff check backend/
+
+# 테스트 실행
+uv run pytest backend/tests/
 ```
 
-프론트엔드: http://localhost:3000
-백엔드 API: http://localhost:8000/docs
+### 2. 데이터 수집 및 가공 CLI
+```powershell
+# 360 보유 대회 자동 감지 및 다운로드
+uv run python -m app.cli fetch
 
-### 2. 데이터 수집(fetch)
-
-가장 최근 대회 중 **360 데이터를 보유한 대회**를 자동 감지해 경기 데이터를 다운로드합니다.
-
-```bash
-# 최신 360 보유 대회 자동 선택
-docker compose run --rm backend python -m app.cli fetch
-
-# 특정 대회 고정
-COMPETITION_ID=55 SEASON_ID=282 docker compose run --rm backend python -m app.cli fetch
+# 데이터 전술 분석 및 DB 적재
+uv run python -m app.cli process
 ```
 
-### 3. 데이터 가공(process)
-
-```bash
-docker compose run --rm backend python -m app.cli process
-# 재처리
-docker compose run --rm backend python -m app.cli process --force
+### 3. Docker Compose 전체 실행
+```powershell
+docker compose up --build
 ```
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000/docs`
 
-### 로컬 개발 모드
+---
 
-```bash
-# 백엔드
-cd backend
-python -m venv .venv && .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+## 라이선스 및 데이터 출처 고지
 
-# 프론트엔드 (별도 터미널)
-cd frontend
-npm install
-npm run dev   # http://localhost:3000, /api는 8000으로 프록시
-```
-
-## CLI 상세
-
-```bash
-python -m app.cli fetch --help
-python -m app.cli process --help
-```
-
-- `fetch`: `competitions.json`에서 후보 대회를 스캔 → GitHub API로 `three-sixty/` 디렉토리 존재 여부 확인 → 최소 매치 수(`MIN_MATCHES`, 기본 30)를 충족하는 360 보유 최신 대회 우선 선택. 다운로드는 경기 단위 최대 3회 재시도 후 건너뜁니다.
-- `process`: 경기 단위 멱등 처리(완료분 스킵, `--force`로 재처리). 원본 JSON은 `data/raw/`, 가공 결과는 `data/db.sqlite`에 저장됩니다.
-
-## API
-
-| 엔드포인트 | 설명 |
-| --- | --- |
-| `GET /api/competitions` | 처리된 대회 목록 |
-| `GET /api/competitions/{id}/matches` | 대회별 경기 목록 |
-| `GET /api/matches/{id}/summary` | 경기 전술 기조 요약 (팀별 지표) |
-| `GET /api/matches/{id}/highlights` | 자동 추출된 하이라이트 목록 |
-| `GET /api/highlights/{id}/frames` | 하이라이트 재생 프레임 (선수 위치·속도·예측 앵커) |
-
-## 데이터 구조 요약
-
-- 좌표계: 120×80 (x: 0~120, y: 0~80), 골은 x=0/x=120
-- 이벤트: `type`(pass, shot, carry, pressure, ball_recovery 등), `possession`(포제션 그룹), `minute/second`, `shot.statsbomb_xg`, `play_pattern`
-- 360 프리즈프레임(`three-sixty/`): 일부 이벤트에 전 선수 위치 포함 — 경기별 `has_360`으로 애니메이션 충실도가 달라집니다
-
-## 테스트
-
-```bash
-# 백엔드 (오프라인, 합성 픽스처 사용)
-cd backend && python -m pytest
-
-# 프론트엔드
-cd frontend && npm test
-```
-
-## 출처 및 라이선스
-
-- 데이터: [StatsBomb Open Data](https://github.com/statsbomb/open-data) — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 라이선스로 제공되며, 본 프로젝트에서 데이터를 사용할 때는 위 출처를 표시해야 합니다.
-- 본 프로젝트는 StatsBomb의 공식 제품이 아니며 StatsBomb와 제휴 관계가 없습니다.
-
-## 프로젝트 구조
-
-```
-backend/    FastAPI 백엔드 (CLI 수집/가공, 분석 엔진, API)
-frontend/   React + Vite 프론트엔드 (바둑판 렌더링, 하이라이트 재생)
-data/       원본 JSON 캐시(data/raw) + SQLite(data/db.sqlite) — git 미추적
-```
-
-## 로드맵 (v2)
-
-- 전체 경기 연속 재생, 팀 간 비교 분석, 상황 기반 기대 위치(ML), 다중 대회 동시 처리
+- **데이터 출처**: [StatsBomb Open Data](https://github.com/statsbomb/open-data)
+- **데이터 라이선스**: Creative Commons Attribution 4.0 International License (CC BY 4.0)
+- 본 프로젝트는 StatsBomb Open Data를 기반으로 제작되었으며, 라이선스 가이드라인에 따라 출처를 명시합니다.
