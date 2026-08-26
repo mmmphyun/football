@@ -31,6 +31,20 @@ export interface TacticalBoardProps {
   // 빌드업 3분할
   showBuildup?: boolean;
   buildupData?: { defPct: number; midPct: number; attPct: number };
+  // 압박 & PPDA
+  showPressure?: boolean;
+  pressureEvents?: Array<{ x: number; y: number; type: string; is_high_press: boolean }>;
+  ppdaValue?: number | null;
+  // 전환 속도
+  showTransitions?: boolean;
+  transitionSequences?: Array<{
+    start: [number, number];
+    end: [number, number];
+    sec: number;
+    speed: number;
+    is_fast: boolean;
+    reached_final_third: boolean;
+  }>;
   // 하이라이트/프레임 렌더링
   players?: FramePlayer[];
   ballLocation?: [number, number];
@@ -60,6 +74,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   showFormation = false,
   showBuildup = false,
   buildupData,
+  showPressure = false,
+  pressureEvents,
+  ppdaValue,
+  showTransitions = false,
+  transitionSequences,
   players,
   ballLocation,
   visibleArea,
@@ -378,6 +397,192 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 </g>
               );
             })()}
+          </g>
+        )}
+
+        {/* 2-2. 압박 & PPDA 오버레이 */}
+        {showPressure && (
+          <g>
+            {/* PPDA 하이프레스 구역 (x >= 40m) 음영 */}
+            {(() => {
+              const [x1] = toSvg(40, 0);
+              const [x2] = toSvg(120, 0);
+              const w = x2 - x1;
+              return (
+                <g>
+                  <rect
+                    x={x1}
+                    y={pitchY}
+                    width={w}
+                    height={pitchH}
+                    fill="rgba(239, 68, 68, 0.08)"
+                    stroke="rgba(239, 68, 68, 0.5)"
+                    strokeDasharray="6 4"
+                    strokeWidth="2"
+                  />
+                  <line
+                    x1={x1}
+                    y1={pitchY}
+                    x2={x1}
+                    y2={pitchY2}
+                    stroke="#ef4444"
+                    strokeWidth="2.5"
+                    strokeDasharray="8 4"
+                  />
+                  <text
+                    x={x1 + 10}
+                    y={pitchY + 25}
+                    fill="#fca5a5"
+                    fontSize="13"
+                    fontWeight="bold"
+                  >
+                    PPDA 하이프레스 기준선 (x ≥ 40m)
+                  </text>
+                  {ppdaValue !== undefined && ppdaValue !== null && (
+                    <text
+                      x={x1 + w / 2}
+                      y={pitchY + 40}
+                      fill="#ef4444"
+                      fontSize="18"
+                      fontWeight="black"
+                      fontFamily="monospace"
+                      textAnchor="middle"
+                    >
+                      PPDA: {ppdaValue.toFixed(2)}
+                    </text>
+                  )}
+                </g>
+              );
+            })()}
+
+            {/* 개별 압박 / 수비 액션 발생 위치 마커 */}
+            {pressureEvents &&
+              pressureEvents.map((pe, idx) => {
+                const [sx, sy] = toSvg(pe.x, pe.y);
+                const color = pe.is_high_press ? "#ef4444" : "#f59e0b";
+                return (
+                  <g key={`pressure-ev-${idx}`}>
+                    <circle
+                      cx={sx}
+                      cy={sy}
+                      r="6"
+                      fill={color}
+                      fillOpacity="0.75"
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                    />
+                    <circle
+                      cx={sx}
+                      cy={sy}
+                      r="12"
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="1"
+                      strokeOpacity="0.4"
+                    />
+                  </g>
+                );
+              })}
+          </g>
+        )}
+
+        {/* 2-3. 전환 속도 (턴오버 회수 → 전개 벡터) 오버레이 */}
+        {showTransitions && (
+          <g>
+            <defs>
+              <marker
+                id="trans-arrow"
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#06b6d4" />
+              </marker>
+              <marker
+                id="trans-arrow-fast"
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#ec4899" />
+              </marker>
+            </defs>
+
+            {/* 공격 진영 (파이널 써드) 가이드 */}
+            {(() => {
+              const [x1] = toSvg(80, 0);
+              const [x2] = toSvg(120, 0);
+              return (
+                <rect
+                  x={x1}
+                  y={pitchY}
+                  width={x2 - x1}
+                  height={pitchH}
+                  fill="rgba(6, 182, 212, 0.05)"
+                  stroke="rgba(6, 182, 212, 0.3)"
+                  strokeDasharray="4 4"
+                />
+              );
+            })()}
+
+            {/* 전환 전개 벡터들 */}
+            {transitionSequences &&
+              transitionSequences.map((seq, idx) => {
+                const [sx, sy] = toSvg(seq.start[0], seq.start[1]);
+                const [ex, ey] = toSvg(seq.end[0], seq.end[1]);
+                const color = seq.is_fast ? "#ec4899" : "#06b6d4";
+                const marker = seq.is_fast
+                  ? "url(#trans-arrow-fast)"
+                  : "url(#trans-arrow)";
+                const midX = (sx + ex) / 2;
+                const midY = (sy + ey) / 2;
+
+                return (
+                  <g key={`trans-seq-${idx}`}>
+                    {/* 시작점 (볼 회수 기점) */}
+                    <circle
+                      cx={sx}
+                      cy={sy}
+                      r="6"
+                      fill={color}
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                    />
+                    {/* 전개 화살표 선 */}
+                    <line
+                      x1={sx}
+                      y1={sy}
+                      x2={ex}
+                      y2={ey}
+                      stroke={color}
+                      strokeWidth={seq.is_fast ? "3" : "2"}
+                      strokeOpacity="0.85"
+                      markerEnd={marker}
+                    />
+                    {/* 전개 속도 라벨 */}
+                    {seq.speed >= 2.0 && (
+                      <text
+                        x={midX}
+                        y={midY - 5}
+                        fill="#ffffff"
+                        fontSize="11"
+                        fontWeight="bold"
+                        fontFamily="monospace"
+                        textAnchor="middle"
+                        className="drop-shadow"
+                      >
+                        {seq.speed.toFixed(1)}m/s
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
           </g>
         )}
 

@@ -215,6 +215,11 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
               midPct: buildupMidPct,
               attPct: buildupAttPct,
             }}
+            showPressure={activeTab === "pressure"}
+            pressureEvents={pressure?.pressure_events}
+            ppdaValue={pressure?.ppda}
+            showTransitions={activeTab === "transitions"}
+            transitionSequences={transitions?.transition_sequences}
           />
           <div className="text-center text-xs text-slate-500">
             * 피치 좌표계: 0 → 120 (좌측 골대 → 우측 공격 방향)

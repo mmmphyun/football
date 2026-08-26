@@ -30,6 +30,7 @@ def compute_transitions_summary(
     slow_transitions = 0
     transition_speeds: list[float] = []
     transition_durations: list[float] = []
+    transition_sequences: list[dict[str, Any]] = []
 
     n = len(sorted_events)
     for i in range(n):
@@ -46,10 +47,12 @@ def compute_transitions_summary(
         t_start = event_time(ev)
         loc_start = ev.get("location")
         start_x = float(loc_start[0]) if loc_start and len(loc_start) >= 1 else 40.0
+        start_y = float(loc_start[1]) if loc_start and len(loc_start) >= 2 else 40.0
 
         reached_final_third = False
         attempted_shot = False
         max_end_x = start_x
+        end_y = start_y
         last_t = t_start
 
         # 회수 후 8초 이내 시퀀스 추적
@@ -69,6 +72,7 @@ def compute_transitions_summary(
                 cur_x = float(next_loc[0])
                 if cur_x > max_end_x:
                     max_end_x = cur_x
+                    end_y = float(next_loc[1]) if len(next_loc) >= 2 else end_y
                 if cur_x >= ATTACKING_THIRD_X:
                     reached_final_third = True
 
@@ -78,6 +82,7 @@ def compute_transitions_summary(
                 end_x = float(pass_end[0])
                 if end_x > max_end_x:
                     max_end_x = end_x
+                    end_y = float(pass_end[1]) if len(pass_end) >= 2 else end_y
                 if end_x >= ATTACKING_THIRD_X:
                     reached_final_third = True
 
@@ -86,6 +91,7 @@ def compute_transitions_summary(
                 end_x = float(carry_end[0])
                 if end_x > max_end_x:
                     max_end_x = end_x
+                    end_y = float(carry_end[1]) if len(carry_end) >= 2 else end_y
                 if end_x >= ATTACKING_THIRD_X:
                     reached_final_third = True
 
@@ -101,13 +107,25 @@ def compute_transitions_summary(
         transition_speeds.append(speed)
 
         # 8초 내 파이널 서드 진입 또는 슈팅 시도 또는 빠른 전진 속도(>= 4.0m/s)인 경우 속공 판정
-        if reached_final_third or attempted_shot or speed >= 4.0:
+        is_fast = reached_final_third or attempted_shot or speed >= 4.0
+        if is_fast:
             fast_transitions += 1
 
         if reached_final_third or attempted_shot:
             transition_durations.append(last_t - t_start)
         else:
             slow_transitions += 1
+
+        transition_sequences.append(
+            {
+                "start": [round(start_x, 1), round(start_y, 1)],
+                "end": [round(max_end_x, 1), round(end_y, 1)],
+                "sec": round(elapsed_sec, 1),
+                "speed": round(speed, 2),
+                "is_fast": is_fast,
+                "reached_final_third": reached_final_third,
+            }
+        )
 
     avg_speed = (
         round(sum(transition_speeds) / len(transition_speeds), 2) if transition_speeds else 0.0
@@ -129,4 +147,6 @@ def compute_transitions_summary(
         "slow_transitions": slow_transitions,
         "fast_transition_ratio": fast_ratio,
         "avg_transition_speed_mps": avg_speed,
+        "transition_sequences": transition_sequences[:30],
     }
+

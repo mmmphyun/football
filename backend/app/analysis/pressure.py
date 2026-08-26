@@ -34,6 +34,7 @@ def compute_pressure_summary(
 
     total_defensive_actions = 0
     high_press_defensive_actions = 0  # x >= 40 (미들 서드 + 어태킹 서드)에서의 수비 액션
+    pressure_events: list[dict[str, Any]] = []
 
     for ev in events:
         ev_team_id = ev.get("team", {}).get("id")
@@ -43,6 +44,7 @@ def compute_pressure_summary(
         type_name = ev.get("type", {}).get("name", "")
         loc = ev.get("location")
         x = float(loc[0]) if loc and len(loc) >= 1 else 60.0
+        y = float(loc[1]) if loc and len(loc) >= 2 else 40.0
 
         if type_name == "Pressure":
             total_pressures += 1
@@ -55,8 +57,18 @@ def compute_pressure_summary(
 
         if type_name in DEFENSIVE_ACTION_TYPES:
             total_defensive_actions += 1
-            if x >= DEFENSIVE_THIRD_X:
+            is_high_press = x >= DEFENSIVE_THIRD_X
+            if is_high_press:
                 high_press_defensive_actions += 1
+
+            pressure_events.append(
+                {
+                    "x": round(x, 1),
+                    "y": round(y, 1),
+                    "type": type_name,
+                    "is_high_press": is_high_press,
+                }
+            )
 
     # 상대팀의 백 60% 진영(상대팀 기준 x < 80)에서의 패스 시도 횟수
     opponent_passes_in_buildup = 0
@@ -83,13 +95,18 @@ def compute_pressure_summary(
         "team_id": team_id,
         "duration_min": duration_min,
         "total_pressures": total_pressures,
+        "total_pressure_events": total_pressures,
         "pressures_per_min": pressures_per_min,
         "ppda": ppda,
+        "high_press_events": high_press_defensive_actions,
         "high_press_defensive_actions": high_press_defensive_actions,
+        "turnovers_forced_att_third": attacking_third_pressures,
         "opponent_passes_in_buildup": opponent_passes_in_buildup,
         "pressures_by_third": {
             "defensive_third": defensive_third_pressures,
             "middle_third": middle_third_pressures,
             "attacking_third": attacking_third_pressures,
         },
+        "pressure_events": pressure_events[:100],
     }
+
