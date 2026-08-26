@@ -134,12 +134,12 @@ git checkout -b feat/#5-frontend-board
 ```
 
 ### 2) 개발 대상 파일
-- [ ] `frontend/` 스캐폴딩: Vite + React 18 + TS + Tailwind CSS
-- [ ] `frontend/src/lib/pitch.ts`, `predict.ts`, `interpolate.ts`: 좌표 변환, 외삽, 보간 엔진
-- [ ] `frontend/src/components/TacticalBoard.tsx`: D3 SVG 바둑판, 히트맵, 토큰, 고스트, 시야각 오버레이, 22명 추론 토글
-- [ ] `frontend/src/components/MatchView.tsx`: 8종 전술 기조 요약 카드 & 인터랙티브 바둑판
-- [ ] `frontend/src/components/HighlightView.tsx`: 하이라이트 플레이어, 컨트롤러, 빈 상태 UI
-- [ ] `frontend/src/App.tsx`: 대회/경기 선택 네비게이션 및 뷰 탭 전환
+- [x] `frontend/` 스캐폴딩: Vite + React 18 + TS + Tailwind CSS
+- [x] `frontend/src/lib/pitch.ts`, `predict.ts`, `interpolate.ts`: 좌표 변환, 외삽, 보간 엔진
+- [x] `frontend/src/components/TacticalBoard.tsx`: D3 SVG 바둑판, 히트맵, 토큰, 고스트, 시야각 오버레이, 22명 추론 토글
+- [x] `frontend/src/components/MatchView.tsx`: 8종 전술 기조 요약 카드 & 인터랙티브 바둑판
+- [x] `frontend/src/components/HighlightView.tsx`: 하이라이트 플레이어, 컨트롤러, 빈 상태 UI
+- [x] `frontend/src/App.tsx`: 대회/경기 선택 네비게이션 및 뷰 탭 전환
 
 ### 3) 로컬 검증
 ```powershell
