@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.analysis.common import build_lineup_maps, event_time
+from app.analysis.formation import get_position_anchor
 from app.analysis.predict import calculate_velocity, extrapolate_frame_players
 
 
@@ -50,6 +51,7 @@ def build_highlight_frames(
                 three_sixty_map[ev_uuid] = f360
 
     lineup_maps = build_lineup_maps(lineups)
+    all_team_ids = list(lineup_maps.keys())
 
     # 선수 전체 목록 생성
     all_players: list[dict[str, Any]] = []
@@ -85,7 +87,15 @@ def build_highlight_frames(
         f360 = three_sixty_map.get(ev_id)
         ball_loc = ev.get("location")
         actor_player_id = ev.get("player", {}).get("id")
-        actor_team_id = ev.get("team", {}).get("id")
+        actor_team_id = ev.get("team", {}).get("id") or (all_team_ids[0] if all_team_ids else 0)
+
+        opponent_team_id = None
+        for t_id in all_team_ids:
+            if t_id != actor_team_id:
+                opponent_team_id = t_id
+                break
+        if opponent_team_id is None and all_team_ids:
+            opponent_team_id = all_team_ids[-1]
 
         raw_players: list[dict[str, Any]] = []
         visible_area: list[float] = []
@@ -95,11 +105,19 @@ def build_highlight_frames(
             visible_area = f360.get("visible_area", [])
             freeze_players = f360.get("freeze_frame", [])
 
+            teammates_present = 0
+            opponents_present = 0
+
             for fp in freeze_players:
                 loc = fp.get("location", [60.0, 40.0])
                 is_actor = bool(fp.get("actor", False))
                 is_teammate = bool(fp.get("teammate", False))
                 is_keeper = bool(fp.get("keeper", False))
+
+                if is_teammate:
+                    teammates_present += 1
+                else:
+                    opponents_present += 1
 
                 # 속도 추정
                 vx, vy = 0.0, 0.0
@@ -123,13 +141,90 @@ def build_highlight_frames(
                     "vy": vy,
                     "anchor_x": anchor_x,
                     "anchor_y": anchor_y,
+                    "is_inferred": False,
                 }
                 raw_players.append(player_entry)
 
                 if is_actor:
                     prev_actor_loc = (float(loc[0]), float(loc[1]))
+
+            # 22명 가상 추론: 360 프레임 밖 미인식 선수를 포메이션 앵커 위치에 가상 배치
+            # 1) 아군 팀 미인식 선수 보충 (선발 11명 목표)
+            home_team_info = lineup_maps.get(actor_team_id, {})
+            home_starters = home_team_info.get("starting_xi", [])
+            home_players_meta = home_team_info.get("players", {})
+            needed_teammates = max(0, 11 - teammates_present)
+
+            teammates_to_add = [
+                p_id for p_id in home_starters if p_id != actor_player_id
+            ][:needed_teammates]
+
+            for p_id in teammates_to_add:
+                p_meta = home_players_meta.get(p_id, {})
+                pos_id = p_meta.get("primary_position_id")
+                anchor = (
+                    formation_anchors.get(actor_team_id, {}).get(p_id)
+                    if formation_anchors
+                    else None
+                )
+                if not anchor:
+                    anchor = get_position_anchor(pos_id)
+
+                raw_players.append(
+                    {
+                        "player_id": p_id,
+                        "location": [anchor[0], anchor[1]],
+                        "is_actor": False,
+                        "is_teammate": True,
+                        "is_keeper": (pos_id == 1),
+                        "vx": 0.0,
+                        "vy": 0.0,
+                        "anchor_x": anchor[0],
+                        "anchor_y": anchor[1],
+                        "is_inferred": True,
+                    }
+                )
+
+            # 2) 상대 팀 미인식 선수 보충 (선발 11명 목표)
+            if opponent_team_id:
+                opp_team_info = lineup_maps.get(opponent_team_id, {})
+                opp_starters = opp_team_info.get("starting_xi", [])
+                opp_players_meta = opp_team_info.get("players", {})
+                needed_opponents = max(0, 11 - opponents_present)
+
+                opponents_to_add = opp_starters[:needed_opponents]
+
+                for p_id in opponents_to_add:
+                    p_meta = opp_players_meta.get(p_id, {})
+                    pos_id = p_meta.get("primary_position_id")
+                    anchor = (
+                        formation_anchors.get(opponent_team_id, {}).get(p_id)
+                        if formation_anchors
+                        else None
+                    )
+                    if not anchor:
+                        anchor = get_position_anchor(pos_id)
+
+                    # 상대팀은 반대 진영(120 - x, 80 - y)으로 대칭 배치
+                    opp_x = round(120.0 - anchor[0], 2)
+                    opp_y = round(80.0 - anchor[1], 2)
+
+                    raw_players.append(
+                        {
+                            "player_id": p_id,
+                            "location": [opp_x, opp_y],
+                            "is_actor": False,
+                            "is_teammate": False,
+                            "is_keeper": (pos_id == 1),
+                            "vx": 0.0,
+                            "vy": 0.0,
+                            "anchor_x": opp_x,
+                            "anchor_y": opp_y,
+                            "is_inferred": True,
+                        }
+                    )
         else:
-            # 360 데이터가 없는 이벤트인 경우 액터 위치 기반 프레임 생성
+            # 360 데이터가 없는 이벤트인 경우 액터 위치 + 21명 포메이션 앵커 가상 프레임 생성
             if ball_loc is not None:
                 vx, vy = 0.0, 0.0
                 if prev_actor_loc is not None and dt > 0.01:
@@ -146,9 +241,70 @@ def build_highlight_frames(
                         "vy": vy,
                         "anchor_x": None,
                         "anchor_y": None,
+                        "is_inferred": False,
                     }
                 )
                 prev_actor_loc = (float(ball_loc[0]), float(ball_loc[1]))
+
+                # 아군 선발 나머지 10명 가상 배치
+                home_team_info = lineup_maps.get(actor_team_id, {})
+                for p_id in home_team_info.get("starting_xi", []):
+                    if p_id == actor_player_id:
+                        continue
+                    p_meta = home_team_info.get("players", {}).get(p_id, {})
+                    pos_id = p_meta.get("primary_position_id")
+                    anchor = (
+                        formation_anchors.get(actor_team_id, {}).get(p_id)
+                        if formation_anchors
+                        else None
+                    )
+                    if not anchor:
+                        anchor = get_position_anchor(pos_id)
+                    raw_players.append(
+                        {
+                            "player_id": p_id,
+                            "location": [anchor[0], anchor[1]],
+                            "is_actor": False,
+                            "is_teammate": True,
+                            "is_keeper": (pos_id == 1),
+                            "vx": 0.0,
+                            "vy": 0.0,
+                            "anchor_x": anchor[0],
+                            "anchor_y": anchor[1],
+                            "is_inferred": True,
+                        }
+                    )
+
+                # 상대팀 선발 11명 가상 배치
+                if opponent_team_id:
+                    opp_team_info = lineup_maps.get(opponent_team_id, {})
+                    for p_id in opp_team_info.get("starting_xi", []):
+                        p_meta = opp_team_info.get("players", {}).get(p_id, {})
+                        pos_id = p_meta.get("primary_position_id")
+                        anchor = (
+                            formation_anchors.get(opponent_team_id, {}).get(p_id)
+                            if formation_anchors
+                            else None
+                        )
+                        if not anchor:
+                            anchor = get_position_anchor(pos_id)
+                        opp_x = round(120.0 - anchor[0], 2)
+                        opp_y = round(80.0 - anchor[1], 2)
+                        raw_players.append(
+                            {
+                                "player_id": p_id,
+                                "location": [opp_x, opp_y],
+                                "is_actor": False,
+                                "is_teammate": False,
+                                "is_keeper": (pos_id == 1),
+                                "vx": 0.0,
+                                "vy": 0.0,
+                                "anchor_x": opp_x,
+                                "anchor_y": opp_y,
+                                "is_inferred": True,
+                            }
+                        )
+
 
         # 단기 외삽 (+2초) 적용
         extrapolated_players = extrapolate_frame_players(raw_players, dt=2.0)
