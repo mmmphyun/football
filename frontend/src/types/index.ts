@@ -67,20 +67,37 @@ export interface PassNode {
   player_id: number;
   player_name: string;
   jersey_number?: number;
+  position?: string;
+  is_starter?: boolean;
   x: number;
   y: number;
-  pass_count: number;
-  progressive_passes: number;
+  pass_count?: number;
+  pass_attempts?: number;
+  pass_completions?: number;
+  pass_accuracy?: number;
+  progressive_passes?: number;
 }
 
 export interface PassEdge {
   passer_id: number;
   recipient_id: number;
   count: number;
-  progressive_count: number;
+  progressive_count?: number;
+  source_id?: number;
+  source_name?: string;
+  target_id?: number;
+  target_name?: string;
+  pass_count?: number;
 }
 
 export interface PassNetworkSummary {
+  team_id?: number;
+  total_passes?: number;
+  completed_passes?: number;
+  pass_accuracy?: number;
+  progressive_passes?: number;
+  progressive_pass_ratio?: number;
+  avg_pass_progression_m?: number;
   nodes: PassNode[];
   edges: PassEdge[];
 }

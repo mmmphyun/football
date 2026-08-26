@@ -22,6 +22,7 @@ def compute_pass_network(
     players_meta = team_meta.get("players", {})
 
     pass_counts: dict[tuple[int, int], int] = defaultdict(int)
+    pass_prog_counts: dict[tuple[int, int], int] = defaultdict(int)
     player_pass_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
     player_pass_attempts: dict[int, int] = defaultdict(int)
     player_pass_completions: dict[int, int] = defaultdict(int)
@@ -48,11 +49,13 @@ def compute_pass_network(
         if passer_id is not None:
             player_pass_attempts[passer_id] += 1
 
+        is_prog = False
         if loc and end_loc and len(loc) >= 2 and len(end_loc) >= 2:
             dx = float(end_loc[0]) - float(loc[0])
             total_delta_x += dx
             if dx >= 10.0:
                 progressive_passes += 1
+                is_prog = True
 
         if is_completed_pass(ev):
             completed_passes += 1
@@ -66,6 +69,8 @@ def compute_pass_network(
 
                 if recipient_id is not None and passer_id != recipient_id:
                     pass_counts[(passer_id, recipient_id)] += 1
+                    if is_prog:
+                        pass_prog_counts[(passer_id, recipient_id)] += 1
 
     # 노드 구성 (패스에 참여한 선수들)
     nodes: list[dict[str, Any]] = []
@@ -90,6 +95,7 @@ def compute_pass_network(
                     "is_starter": p_info.get("is_starter", False),
                     "x": avg_x,
                     "y": avg_y,
+                    "pass_count": completions,
                     "pass_attempts": attempts,
                     "pass_completions": completions,
                     "pass_accuracy": round(completions / attempts, 3) if attempts > 0 else 0.0,
@@ -104,6 +110,10 @@ def compute_pass_network(
         dst_name = players_meta.get(dst, {}).get("player_name", str(dst))
         edges.append(
             {
+                "passer_id": src,
+                "recipient_id": dst,
+                "count": count,
+                "progressive_count": pass_prog_counts.get((src, dst), 0),
                 "source_id": src,
                 "source_name": src_name,
                 "target_id": dst,
@@ -111,6 +121,7 @@ def compute_pass_network(
                 "pass_count": count,
             }
         )
+
 
     pass_accuracy = round(completed_passes / total_passes, 3) if total_passes > 0 else 0.0
     prog_pass_ratio = round(progressive_passes / total_passes, 3) if total_passes > 0 else 0.0
