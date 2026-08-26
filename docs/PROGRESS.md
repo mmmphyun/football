@@ -13,7 +13,7 @@ StatsBomb Open Data 기반 전술 분석 시스템 `IMPLEMENTATION_PLAN_V3.md` �
 | **Phase 2: 분석 엔진 리팩토링** | `common.py`, `formation.py`, `zones.py`, `passes.py`, `pressure.py`, `buildup.py`, `transitions.py`, `predict.py` | **완료** |
 | **Phase 3: 하이라이트 & 파이프라인** | `highlights.py`, `frames.py`, `processing.py`, `cli.py`, `main.py` (FastAPI) | **완료** |
 | **Phase 4: 백엔드 테스트** | 실제 축소 픽스처 기반 pytest 단위/통합 테스트 | **완료** |
-| **Phase 5: 프론트엔드 구축** | React 18 + TS + Tailwind + D3 바둑판 피치, 전술 뷰, 하이라이트 플레이어 | **대기** |
+| **Phase 5: 프론트엔드 구축** | React 18 + TS + Tailwind + D3 바둑판 피치, 전술 뷰, 하이라이트 플레이어 | **완료** |
 | **Phase 6: 통합 검증 & 배포** | 실제 360 경기 데이터 fetch -> process -> UI 확인, Docker Compose | **대기** |
 
 ---
@@ -47,10 +47,10 @@ StatsBomb Open Data 기반 전술 분석 시스템 `IMPLEMENTATION_PLAN_V3.md` �
 - [x] `backend/tests/test_analysis.py`, `test_highlights.py`, `test_storage_pipeline.py`, `test_api.py`
 
 ### Phase 5: 프론트엔드 구축
-- [ ] Vite + React 18 + TS + Tailwind 기본 스캐폴딩
-- [ ] `src/lib/pitch.ts`, `predict.ts`, `interpolate.ts`
-- [ ] `TacticalBoard.tsx` (D3 SVG 바둑판 피치, 히트맵, 토큰, 고스트, 22명 추론)
-- [ ] `MatchView.tsx`, `HighlightView.tsx`, `App.tsx`
+- [x] Vite + React 18 + TS + Tailwind 기본 스캐폴딩
+- [x] `src/lib/pitch.ts`, `predict.ts`, `interpolate.ts`
+- [x] `TacticalBoard.tsx` (D3 SVG 바둑판 피치, 히트맵, 토큰, 고스트, 22명 추론)
+- [x] `MatchView.tsx`, `HighlightView.tsx`, `App.tsx`
 
 ---
 
