@@ -10,7 +10,7 @@ StatsBomb Open Data 기반 전술 분석 시스템 `IMPLEMENTATION_PLAN_V3.md` �
 | :--- | :--- | :---: |
 | **Phase 0: 설계 및 정비** | 기존 3개 리포지토리 통합 분석, v3 명세서 및 런북 작성 | **완료** |
 | **Phase 1: 기반 레이어** | `config.py`, `downloader.py` (다운로더/캐시), `storage.py` (CRUD) | **완료** |
-| **Phase 2: 분석 엔진 리팩토링** | `common.py`, `formation.py`, `zones.py`, `passes.py`, `pressure.py`, `buildup.py`, `transitions.py`, `predict.py` | **대기** |
+| **Phase 2: 분석 엔진 리팩토링** | `common.py`, `formation.py`, `zones.py`, `passes.py`, `pressure.py`, `buildup.py`, `transitions.py`, `predict.py` | **완료** |
 | **Phase 3: 하이라이트 & 파이프라인** | `highlights.py`, `frames.py`, `processing.py`, `cli.py`, `main.py` (FastAPI) | **대기** |
 | **Phase 4: 백엔드 테스트** | 실제 축소 픽스처 기반 pytest 단위/통합 테스트 | **대기** |
 | **Phase 5: 프론트엔드 구축** | React 18 + TS + Tailwind + D3 바둑판 피치, 전술 뷰, 하이라이트 플레이어 | **대기** |
@@ -26,14 +26,14 @@ StatsBomb Open Data 기반 전술 분석 시스템 `IMPLEMENTATION_PLAN_V3.md` �
 - [x] `backend/app/storage.py`: SQLite 스키마 및 CRUD 함수
 
 ### Phase 2: 분석 엔진 리팩토링
-- [ ] `backend/app/analysis/common.py`: 좌표계 불변(`attack_direction` 반전 금지), 시간 계산
-- [ ] `backend/app/analysis/formation.py`: 이벤트 기반 선수별 평균 좌표 및 포메이션 산출
-- [ ] `backend/app/analysis/zones.py`: 360 프레임 기반 12x8 존 점유율
-- [ ] `backend/app/analysis/passes.py`: 패스 네트워크 노드/상위 엣지 및 전진성
-- [ ] `backend/app/analysis/pressure.py`: 상대 진영(x>=40) PPDA 및 압박 강도
-- [ ] `backend/app/analysis/buildup.py`: 3분할 진영별 빌드업 시작점/전진 패스
-- [ ] `backend/app/analysis/transitions.py`: 턴오버 후 8초 이내 속공/지공 전환
-- [ ] `backend/app/analysis/predict.py`: +2초 단기 외삽(최대속도/경계 클램프, 앵커 인력)
+- [x] `backend/app/analysis/common.py`: 좌표계 불변(`attack_direction` 반전 금지), 시간 계산
+- [x] `backend/app/analysis/formation.py`: 이벤트 기반 선수별 평균 좌표 및 포메이션 산출
+- [x] `backend/app/analysis/zones.py`: 360 프레임 기반 12x8 존 점유율
+- [x] `backend/app/analysis/passes.py`: 패스 네트워크 노드/상위 엣지 및 전진성
+- [x] `backend/app/analysis/pressure.py`: 상대 진영(x>=40) PPDA 및 압박 강도
+- [x] `backend/app/analysis/buildup.py`: 3분할 진영별 빌드업 시작점/전진 패스
+- [x] `backend/app/analysis/transitions.py`: 턴오버 후 8초 이내 속공/지공 전환
+- [x] `backend/app/analysis/predict.py`: +2초 단기 외삽(최대속도/경계 클램프, 앵커 인력)
 
 ### Phase 3: 하이라이트 & 파이프라인
 - [ ] `backend/app/highlights.py`: 골 및 xG>=0.25 슈팅 + 포제션 윈도우 클립
