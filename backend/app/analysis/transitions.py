@@ -149,4 +149,3 @@ def compute_transitions_summary(
         "avg_transition_speed_mps": avg_speed,
         "transition_sequences": transition_sequences[:30],
     }
-

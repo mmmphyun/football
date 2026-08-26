@@ -155,9 +155,7 @@ def compute_formation_summary(
 
     # 선발 11명 및 교체 출전 선수 분리
     starters = [p for p in players_overall if p["is_starter"]]
-    substitutes = [
-        p for p in players_overall if not p["is_starter"] and p["event_count"] > 0
-    ]
+    substitutes = [p for p in players_overall if not p["is_starter"] and p["event_count"] > 0]
     all_played = starters + substitutes
 
     return {
@@ -176,5 +174,3 @@ def compute_formation_summary(
         "players_in_possession": players_in_poss,
         "players_out_of_possession": players_out_poss,
     }
-
-

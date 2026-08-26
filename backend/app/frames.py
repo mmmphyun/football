@@ -155,9 +155,9 @@ def build_highlight_frames(
             home_players_meta = home_team_info.get("players", {})
             needed_teammates = max(0, 11 - teammates_present)
 
-            teammates_to_add = [
-                p_id for p_id in home_starters if p_id != actor_player_id
-            ][:needed_teammates]
+            teammates_to_add = [p_id for p_id in home_starters if p_id != actor_player_id][
+                :needed_teammates
+            ]
 
             for p_id in teammates_to_add:
                 p_meta = home_players_meta.get(p_id, {})
@@ -304,7 +304,6 @@ def build_highlight_frames(
                                 "is_inferred": True,
                             }
                         )
-
 
         # 단기 외삽 (+2초) 적용
         extrapolated_players = extrapolate_frame_players(raw_players, dt=2.0)

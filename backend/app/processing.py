@@ -29,11 +29,7 @@ def _extract_formation_anchors(
     for team_id_key, t_data in teams.items():
         team_id = int(team_id_key)
         formation = t_data.get("formation", {})
-        players = (
-            formation.get("players")
-            or formation.get("players_overall")
-            or []
-        )
+        players = formation.get("players") or formation.get("players_overall") or []
         team_anchor_map: dict[int, tuple[float, float]] = {}
         for p in players:
             p_id = p.get("player_id")
