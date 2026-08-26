@@ -119,9 +119,15 @@ export interface BuildupSummary {
 }
 
 export interface TransitionsSummary {
-  turnovers_won: number;
-  fast_transitions_to_att_third: number;
-  avg_transition_sec: number | null;
+  team_id?: number;
+  turnovers_won?: number;
+  fast_transitions_to_att_third?: number;
+  avg_transition_sec?: number | null;
+  total_recoveries?: number;
+  fast_transitions?: number;
+  slow_transitions?: number;
+  fast_transition_ratio?: number;
+  avg_transition_speed_mps?: number;
 }
 
 export interface TeamSummary {
