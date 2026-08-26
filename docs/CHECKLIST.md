@@ -79,11 +79,11 @@ git checkout -b feat/#3-pipeline-and-api
 ```
 
 ### 2) 개발 대상 파일
-- [ ] `backend/app/highlights.py`: 골 및 xG >= 0.25 슈팅 추출 + 포제션 윈도우 클리핑
-- [ ] `backend/app/frames.py`: 360 위치/속도/앵커/시야각 프레임 생성
-- [ ] `backend/app/processing.py`: 매치 종합 분석 및 DB 적재 파이프라인
-- [ ] `backend/app/cli.py`: fetch, process CLI 서브커맨드
-- [ ] `backend/app/main.py`: FastAPI 앱, CORS 미들웨어, REST API 5종
+- [x] `backend/app/highlights.py`: 골 및 xG >= 0.25 슈팅 추출 + 포제션 윈도우 클리핑
+- [x] `backend/app/frames.py`: 360 위치/속도/앵커/시야각 프레임 생성
+- [x] `backend/app/processing.py`: 매치 종합 분석 및 DB 적재 파이프라인
+- [x] `backend/app/cli.py`: fetch, process CLI 서브커맨드
+- [x] `backend/app/main.py`: FastAPI 앱, CORS 미들웨어, REST API 5종
 
 ### 3) 로컬 검증
 ```powershell
