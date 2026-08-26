@@ -28,6 +28,9 @@ export interface TacticalBoardProps {
   // 포메이션 평균 위치
   formationPlayers?: FormationPlayer[];
   showFormation?: boolean;
+  // 빌드업 3분할
+  showBuildup?: boolean;
+  buildupData?: { defPct: number; midPct: number; attPct: number };
   // 하이라이트/프레임 렌더링
   players?: FramePlayer[];
   ballLocation?: [number, number];
@@ -55,6 +58,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   showPassNetwork = false,
   formationPlayers,
   showFormation = false,
+  showBuildup = false,
+  buildupData,
   players,
   ballLocation,
   visibleArea,
@@ -217,6 +222,164 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </g>
             );
           })}
+
+        {/* 2-1. 빌드업 3분할 써드 (0~40, 40~80, 80~120) 오버레이 */}
+        {showBuildup && (
+          <g>
+            {/* 수비 써드 (0~40m) */}
+            {(() => {
+              const [x1] = toSvg(0, 0);
+              const [x2] = toSvg(40, 0);
+              const w = x2 - x1;
+              return (
+                <g>
+                  <rect
+                    x={x1}
+                    y={pitchY}
+                    width={w}
+                    height={pitchH}
+                    fill="rgba(59, 130, 246, 0.12)"
+                    stroke="rgba(59, 130, 246, 0.4)"
+                    strokeDasharray="4 4"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + 40}
+                    fill="#93c5fd"
+                    fontSize="16"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    수비 써드 (0~40m)
+                  </text>
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + pitchH / 2}
+                    fill="#ffffff"
+                    fontSize="28"
+                    fontWeight="black"
+                    fontFamily="monospace"
+                    textAnchor="middle"
+                  >
+                    {buildupData?.defPct?.toFixed(1) ?? "0.0"}%
+                  </text>
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + pitchH / 2 + 25}
+                    fill="#bfdbfe"
+                    fontSize="12"
+                    textAnchor="middle"
+                  >
+                    빌드업 시작 비율
+                  </text>
+                </g>
+              );
+            })()}
+
+            {/* 미들 써드 (40~80m) */}
+            {(() => {
+              const [x1] = toSvg(40, 0);
+              const [x2] = toSvg(80, 0);
+              const w = x2 - x1;
+              return (
+                <g>
+                  <rect
+                    x={x1}
+                    y={pitchY}
+                    width={w}
+                    height={pitchH}
+                    fill="rgba(16, 185, 129, 0.12)"
+                    stroke="rgba(16, 185, 129, 0.4)"
+                    strokeDasharray="4 4"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + 40}
+                    fill="#6ee7b7"
+                    fontSize="16"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    미들 써드 (40~80m)
+                  </text>
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + pitchH / 2}
+                    fill="#ffffff"
+                    fontSize="28"
+                    fontWeight="black"
+                    fontFamily="monospace"
+                    textAnchor="middle"
+                  >
+                    {buildupData?.midPct?.toFixed(1) ?? "0.0"}%
+                  </text>
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + pitchH / 2 + 25}
+                    fill="#a7f3d0"
+                    fontSize="12"
+                    textAnchor="middle"
+                  >
+                    빌드업 시작 비율
+                  </text>
+                </g>
+              );
+            })()}
+
+            {/* 공격 써드 (80~120m) */}
+            {(() => {
+              const [x1] = toSvg(80, 0);
+              const [x2] = toSvg(120, 0);
+              const w = x2 - x1;
+              return (
+                <g>
+                  <rect
+                    x={x1}
+                    y={pitchY}
+                    width={w}
+                    height={pitchH}
+                    fill="rgba(245, 158, 11, 0.12)"
+                    stroke="rgba(245, 158, 11, 0.4)"
+                    strokeDasharray="4 4"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + 40}
+                    fill="#fde68a"
+                    fontSize="16"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    공격 써드 (80~120m)
+                  </text>
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + pitchH / 2}
+                    fill="#ffffff"
+                    fontSize="28"
+                    fontWeight="black"
+                    fontFamily="monospace"
+                    textAnchor="middle"
+                  >
+                    {buildupData?.attPct?.toFixed(1) ?? "0.0"}%
+                  </text>
+                  <text
+                    x={x1 + w / 2}
+                    y={pitchY + pitchH / 2 + 25}
+                    fill="#fef3c7"
+                    fontSize="12"
+                    textAnchor="middle"
+                  >
+                    빌드업 시작 비율
+                  </text>
+                </g>
+              );
+            })()}
+          </g>
+        )}
 
         {/* 3. 피치 라인 마킹 (흰색 선) */}
         <g stroke="rgba(255, 255, 255, 0.4)" strokeWidth="2" fill="none">

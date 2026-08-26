@@ -101,41 +101,53 @@ def compute_buildup_summary(
         else 0.0
     )
 
+    def_ratio = (
+        round(defensive_third_starts / team_possession_count, 3)
+        if team_possession_count > 0
+        else 0.0
+    )
+    mid_ratio = (
+        round(middle_third_starts / team_possession_count, 3)
+        if team_possession_count > 0
+        else 0.0
+    )
+    att_ratio = (
+        round(attacking_third_starts / team_possession_count, 3)
+        if team_possession_count > 0
+        else 0.0
+    )
+    prog_pass_ratio = (
+        round(prog_passes / total_passes, 3) if total_passes > 0 else 0.0
+    )
+    prog_carry_ratio = (
+        round(prog_carries / total_carries, 3) if total_carries > 0 else 0.0
+    )
+
     return {
         "team_id": team_id,
         "total_possessions": team_possession_count,
         "avg_passes_per_possession": avg_passes_per_possession,
         "long_buildup_sequences": long_buildup_sequences,
+        "defensive_third_pct": round(def_ratio * 100, 1),
+        "middle_third_pct": round(mid_ratio * 100, 1),
+        "attacking_third_pct": round(att_ratio * 100, 1),
+        "progressive_pass_ratio": round(prog_pass_ratio * 100, 1),
+        "progressive_carry_ratio": round(prog_carry_ratio * 100, 1),
         "buildup_start_distribution": {
             "defensive_third": defensive_third_starts,
             "middle_third": middle_third_starts,
             "attacking_third": attacking_third_starts,
-            "defensive_third_ratio": (
-                round(defensive_third_starts / team_possession_count, 3)
-                if team_possession_count > 0
-                else 0.0
-            ),
-            "middle_third_ratio": (
-                round(middle_third_starts / team_possession_count, 3)
-                if team_possession_count > 0
-                else 0.0
-            ),
-            "attacking_third_ratio": (
-                round(attacking_third_starts / team_possession_count, 3)
-                if team_possession_count > 0
-                else 0.0
-            ),
+            "defensive_third_ratio": def_ratio,
+            "middle_third_ratio": mid_ratio,
+            "attacking_third_ratio": att_ratio,
         },
         "progression": {
             "total_passes": total_passes,
             "progressive_passes": prog_passes,
-            "progressive_pass_ratio": (
-                round(prog_passes / total_passes, 3) if total_passes > 0 else 0.0
-            ),
+            "progressive_pass_ratio": prog_pass_ratio,
             "total_carries": total_carries,
             "progressive_carries": prog_carries,
-            "progressive_carry_ratio": (
-                round(prog_carries / total_carries, 3) if total_carries > 0 else 0.0
-            ),
+            "progressive_carry_ratio": prog_carry_ratio,
         },
     }
+

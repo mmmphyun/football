@@ -31,6 +31,7 @@ export interface FormationPlayer {
   jersey_number?: number;
   position_id?: number;
   position_name?: string;
+  is_starter?: boolean;
   x: number;
   y: number;
   event_count?: number;
@@ -40,6 +41,9 @@ export interface FormationSummary {
   formation?: string;
   formation_name?: string;
   players?: FormationPlayer[];
+  starters?: FormationPlayer[];
+  substitutes?: FormationPlayer[];
+  all_played_players?: FormationPlayer[];
   players_overall?: FormationPlayer[];
   players_in_possession?: FormationPlayer[];
   players_out_of_possession?: FormationPlayer[];
@@ -111,11 +115,31 @@ export interface PressureSummary {
 }
 
 export interface BuildupSummary {
-  defensive_third_pct: number;
-  middle_third_pct: number;
-  attacking_third_pct: number;
-  progressive_pass_ratio: number;
-  progressive_carry_ratio: number;
+  team_id?: number;
+  total_possessions?: number;
+  avg_passes_per_possession?: number;
+  long_buildup_sequences?: number;
+  defensive_third_pct?: number;
+  middle_third_pct?: number;
+  attacking_third_pct?: number;
+  progressive_pass_ratio?: number;
+  progressive_carry_ratio?: number;
+  buildup_start_distribution?: {
+    defensive_third: number;
+    middle_third: number;
+    attacking_third: number;
+    defensive_third_ratio: number;
+    middle_third_ratio: number;
+    attacking_third_ratio: number;
+  };
+  progression?: {
+    total_passes: number;
+    progressive_passes: number;
+    progressive_pass_ratio: number;
+    total_carries: number;
+    progressive_carries: number;
+    progressive_carry_ratio: number;
+  };
 }
 
 export interface TransitionsSummary {

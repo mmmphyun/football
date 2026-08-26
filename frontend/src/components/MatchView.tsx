@@ -36,8 +36,33 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   }
 
   const { formation, zones, passes, pressure, buildup, transitions } = currentTeam;
-  const formationPlayers = formation?.players || formation?.players_overall || [];
+  const starters =
+    formation?.starters ||
+    formation?.players?.filter((p) => p.is_starter) ||
+    formation?.players ||
+    [];
+  const substitutes =
+    formation?.substitutes ||
+    formation?.players?.filter((p) => !p.is_starter && (p.event_count ?? 0) > 0) ||
+    [];
+  const formationPlayers = starters.length > 0 ? starters : (formation?.players || []);
   const formationName = formation?.formation_name || formation?.formation || "포메이션 정보 없음";
+
+  const buildupDefPct =
+    buildup?.defensive_third_pct ??
+    (buildup?.buildup_start_distribution
+      ? buildup.buildup_start_distribution.defensive_third_ratio * 100
+      : 0);
+  const buildupMidPct =
+    buildup?.middle_third_pct ??
+    (buildup?.buildup_start_distribution
+      ? buildup.buildup_start_distribution.middle_third_ratio * 100
+      : 0);
+  const buildupAttPct =
+    buildup?.attacking_third_pct ??
+    (buildup?.buildup_start_distribution
+      ? buildup.buildup_start_distribution.attacking_third_ratio * 100
+      : 0);
 
   return (
     <div className="space-y-6">
@@ -184,6 +209,12 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
             showPassNetwork={activeTab === "passes"}
             passNodes={passes?.nodes}
             passEdges={passes?.edges}
+            showBuildup={activeTab === "buildup"}
+            buildupData={{
+              defPct: buildupDefPct,
+              midPct: buildupMidPct,
+              attPct: buildupAttPct,
+            }}
           />
           <div className="text-center text-xs text-slate-500">
             * 피치 좌표계: 0 → 120 (좌측 골대 → 우측 공격 방향)
@@ -197,16 +228,16 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
               <StatCard
                 title="기본 포메이션"
                 value={formationName}
-                subtitle={`선발 및 참여 선수: ${formationPlayers.length}명`}
-                badge="실측 평균 위치"
+                subtitle={`선발: ${starters.length}명 / 교체 출전: ${substitutes.length}명`}
+                badge="Starting XI 선발 11명"
                 badgeColor="emerald"
               />
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
-                  선수별 평균 참여 좌표
+                  선발 선수 평균 참여 좌표 ({starters.length}명)
                 </h4>
-                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                  {formationPlayers.map((p) => (
+                <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                  {starters.map((p) => (
                     <div
                       key={p.player_id}
                       className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80"
@@ -226,6 +257,32 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                     </div>
                   ))}
                 </div>
+
+                {substitutes.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-slate-800">
+                    <h4 className="text-xs font-bold text-amber-400 uppercase mb-2">
+                      교체 출전 선수 ({substitutes.length}명)
+                    </h4>
+                    <div className="space-y-1.5">
+                      {substitutes.map((p) => (
+                        <div
+                          key={p.player_id}
+                          className="flex items-center justify-between text-xs bg-slate-950/40 p-1.5 rounded-lg border border-slate-800/60"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span className="w-4 h-4 flex items-center justify-center bg-amber-500/20 text-amber-300 rounded text-[10px] font-mono">
+                              {p.jersey_number ?? "-"}
+                            </span>
+                            <span className="text-slate-300 text-[11px]">{p.player_name}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {p.event_count}회 관여
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

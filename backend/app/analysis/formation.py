@@ -153,11 +153,12 @@ def compute_formation_summary(
         team_center_x = 55.0
         team_center_y = 40.0
 
-    # 출전 선수 우선 필터링 (선발 선수 또는 이벤트 기록이 있는 선수)
-    active_players = [
-        p for p in players_overall if p["is_starter"] or p["event_count"] > 0
+    # 선발 11명 및 교체 출전 선수 분리
+    starters = [p for p in players_overall if p["is_starter"]]
+    substitutes = [
+        p for p in players_overall if not p["is_starter"] and p["event_count"] > 0
     ]
-    players_list = active_players if active_players else players_overall
+    all_played = starters + substitutes
 
     return {
         "team_id": team_id,
@@ -167,9 +168,13 @@ def compute_formation_summary(
         "team_width": team_width,
         "team_center_x": team_center_x,
         "team_center_y": team_center_y,
-        "players": players_list,
+        "players": starters if starters else players_overall,
+        "starters": starters,
+        "substitutes": substitutes,
+        "all_played_players": all_played,
         "players_overall": players_overall,
         "players_in_possession": players_in_poss,
         "players_out_of_possession": players_out_poss,
     }
+
 
