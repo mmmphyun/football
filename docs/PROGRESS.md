@@ -14,7 +14,7 @@ StatsBomb Open Data 기반 전술 분석 시스템 `IMPLEMENTATION_PLAN_V3.md` �
 | **Phase 3: 하이라이트 & 파이프라인** | `highlights.py`, `frames.py`, `processing.py`, `cli.py`, `main.py` (FastAPI) | **완료** |
 | **Phase 4: 백엔드 테스트** | 실제 축소 픽스처 기반 pytest 단위/통합 테스트 | **완료** |
 | **Phase 5: 프론트엔드 구축** | React 18 + TS + Tailwind + D3 바둑판 피치, 전술 뷰, 하이라이트 플레이어 | **완료** |
-| **Phase 6: 통합 검증 & 배포** | 실제 360 경기 데이터 fetch -> process -> UI 확인, Docker Compose | **대기** |
+| **Phase 6: 통합 검증 & 배포** | 실제 360 경기 데이터 fetch -> process -> UI 확인, Docker Compose | **완료** |
 
 ---
 
@@ -51,6 +51,12 @@ StatsBomb Open Data 기반 전술 분석 시스템 `IMPLEMENTATION_PLAN_V3.md` �
 - [x] `src/lib/pitch.ts`, `predict.ts`, `interpolate.ts`
 - [x] `TacticalBoard.tsx` (D3 SVG 바둑판 피치, 히트맵, 토큰, 고스트, 22명 추론)
 - [x] `MatchView.tsx`, `HighlightView.tsx`, `App.tsx`
+
+### Phase 6: 통합 검증 & 배포
+- [x] `frontend/Dockerfile`, `frontend/nginx.conf` Nginx 리버스 프록시 및 정적 서빙 구성
+- [x] `backend/Dockerfile`, `docker-compose.yml` 컨테이너 배포 명세 구성
+- [x] 실제 StatsBomb 360 데이터 다운로드(`fetch`) 및 분석 적재(`process`) CLI 파이프라인 검증
+- [x] 백엔드 및 프론트엔드 전체 단위/통합 테스트 및 프로덕션 빌드 통과
 
 ---
 
