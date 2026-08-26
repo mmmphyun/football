@@ -164,8 +164,8 @@ git checkout -b feat/#6-integration-and-deploy
 ```
 
 ### 2) 개발 대상 파일
-- [ ] `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`
-- [ ] `docs/PROGRESS.md` 최종 완료 처리
+- [x] `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`
+- [x] `docs/PROGRESS.md` 최종 완료 처리
 
 ### 3) 검증 절차
 ```powershell
