@@ -26,15 +26,20 @@ def _extract_formation_anchors(
     """분석 요약 결과에서 팀별 선수 포메이션 평균 위치 앵커 맵을 추출합니다."""
     anchors: dict[int, dict[int, tuple[float, float]]] = {}
     teams = summary_data.get("teams", {})
-    for team_id_str, t_data in teams.items():
-        team_id = int(team_id_str)
+    for team_id_key, t_data in teams.items():
+        team_id = int(team_id_key)
         formation = t_data.get("formation", {})
-        players = formation.get("players", [])
+        players = (
+            formation.get("players")
+            or formation.get("players_overall")
+            or []
+        )
         team_anchor_map: dict[int, tuple[float, float]] = {}
         for p in players:
             p_id = p.get("player_id")
-            x = p.get("x")
-            y = p.get("y")
+            # 실측 x, y 또는 표준 anchor_x, anchor_y
+            x = p.get("x") if p.get("x") is not None else p.get("anchor_x")
+            y = p.get("y") if p.get("y") is not None else p.get("anchor_y")
             if p_id is not None and x is not None and y is not None:
                 team_anchor_map[p_id] = (float(x), float(y))
         anchors[team_id] = team_anchor_map
