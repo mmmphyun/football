@@ -416,27 +416,39 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
               <div className="grid grid-cols-2 gap-3">
                 <StatCard
                   title="볼 탈취 성공"
-                  value={`${transitions?.turnovers_won || 0}회`}
+                  value={`${transitions?.turnovers_won ?? transitions?.total_recoveries ?? 0}회`}
                   subtitle="가로채기 및 리커버리"
                   badgeColor="emerald"
                 />
                 <StatCard
                   title="빠른 공격 전환 (8초 이내)"
-                  value={`${transitions?.fast_transitions_to_att_third || 0}회`}
+                  value={`${transitions?.fast_transitions_to_att_third ?? transitions?.fast_transitions ?? 0}회`}
                   subtitle="파이널 써드 도달 성공"
                   badgeColor="amber"
                 />
               </div>
-              <StatCard
-                title="평균 전환 소요 시간"
-                value={
-                  transitions?.avg_transition_sec !== null
-                    ? `${transitions.avg_transition_sec.toFixed(2)}초`
-                    : "-"
-                }
-                subtitle="볼 탈취 후 공격 써드 도달까지"
-                badgeColor="indigo"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard
+                  title="평균 전환 소요 시간"
+                  value={
+                    typeof transitions?.avg_transition_sec === "number"
+                      ? `${transitions.avg_transition_sec.toFixed(2)}초`
+                      : "-"
+                  }
+                  subtitle="공격 써드 도달 소요 시간"
+                  badgeColor="indigo"
+                />
+                <StatCard
+                  title="평균 전환 속도"
+                  value={
+                    typeof transitions?.avg_transition_speed_mps === "number"
+                      ? `${transitions.avg_transition_speed_mps.toFixed(2)}m/s`
+                      : "-"
+                  }
+                  subtitle="공격 전개 속도"
+                  badgeColor="blue"
+                />
+              </div>
             </div>
           )}
         </div>

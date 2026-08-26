@@ -29,6 +29,7 @@ def compute_transitions_summary(
     fast_transitions = 0
     slow_transitions = 0
     transition_speeds: list[float] = []
+    transition_durations: list[float] = []
 
     n = len(sorted_events)
     for i in range(n):
@@ -95,23 +96,34 @@ def compute_transitions_summary(
             last_t = t_next
 
         delta_x = max(0.0, max_end_x - start_x)
-        elapsed_sec = max(1.0, last_t - t_start)
+        elapsed_sec = max(0.5, last_t - t_start)
         speed = delta_x / elapsed_sec
         transition_speeds.append(speed)
 
         # 8초 내 파이널 서드 진입 또는 슈팅 시도 또는 빠른 전진 속도(>= 4.0m/s)인 경우 속공 판정
         if reached_final_third or attempted_shot or speed >= 4.0:
             fast_transitions += 1
+
+        if reached_final_third or attempted_shot:
+            transition_durations.append(last_t - t_start)
         else:
             slow_transitions += 1
 
     avg_speed = (
         round(sum(transition_speeds) / len(transition_speeds), 2) if transition_speeds else 0.0
     )
+    avg_sec = (
+        round(sum(transition_durations) / len(transition_durations), 2)
+        if transition_durations
+        else None
+    )
     fast_ratio = round(fast_transitions / total_recoveries, 3) if total_recoveries > 0 else 0.0
 
     return {
         "team_id": team_id,
+        "turnovers_won": total_recoveries,
+        "fast_transitions_to_att_third": fast_transitions,
+        "avg_transition_sec": avg_sec,
         "total_recoveries": total_recoveries,
         "fast_transitions": fast_transitions,
         "slow_transitions": slow_transitions,
