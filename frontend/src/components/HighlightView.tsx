@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { Highlight, HighlightFramesData } from "../types";
 import { fetchHighlightFrames } from "../api/client";
 import { TacticalBoard } from "./TacticalBoard";
@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Eye,
   FastForward,
+  GitFork,
   Pause,
   Play,
   RotateCcw,
@@ -39,6 +40,7 @@ export const HighlightView: React.FC<HighlightViewProps> = ({
 
   // 시각화 옵션 토글
   const [showVisibleArea, setShowVisibleArea] = useState<boolean>(true);
+  const [showPassingLanes, setShowPassingLanes] = useState<boolean>(true);
   const [showVelocity, setShowVelocity] = useState<boolean>(true);
   const [showGhostPrediction, setShowGhostPrediction] = useState<boolean>(true);
   const [showInferredPlayers, setShowInferredPlayers] = useState<boolean>(true);
@@ -156,6 +158,9 @@ export const HighlightView: React.FC<HighlightViewProps> = ({
     );
   }
 
+  const openLanesCount = currentFrame?.passing_lanes?.filter((l) => l.is_open).length ?? 0;
+  const blockedLanesCount = currentFrame?.passing_lanes?.filter((l) => !l.is_open).length ?? 0;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* 좌측 사이드바: 하이라이트 목록 (4 cols) */}
@@ -210,13 +215,22 @@ export const HighlightView: React.FC<HighlightViewProps> = ({
 
       {/* 우측 메인: 전술 바둑판 플레이어 (8 cols) */}
       <div className="lg:col-span-8 space-y-4">
-        {/* 360 가시 영역 상태 안내 배너 */}
-        {framesData && !framesData.has_360 && (
-          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>
-              이 하이라이트 구간은 360 트래킹 데이터가 포함되지 않아 이벤트 액터 좌표만 표시됩니다.
-            </span>
+        {/* 360 가시 영역 및 패스길 통계 상태 배너 */}
+        {framesData && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
+              <span className="text-xs text-slate-400">360 가시 영역</span>
+              <span className={`text-xs font-bold ${framesData.has_360 ? "text-indigo-400" : "text-slate-500"}`}>
+                {framesData.has_360 ? "360 Polygon 활성화" : "2D 이벤트 좌표"}
+              </span>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
+              <span className="text-xs text-slate-400">실시간 패스길 상태</span>
+              <span className="text-xs font-mono font-bold">
+                <span className="text-emerald-400">열림 {openLanesCount}</span> /{" "}
+                <span className="text-rose-400">차단 {blockedLanesCount}</span>
+              </span>
+            </div>
           </div>
         )}
 
@@ -233,6 +247,8 @@ export const HighlightView: React.FC<HighlightViewProps> = ({
             players={currentFrame?.players}
             ballLocation={currentFrame?.ball_location}
             visibleArea={currentFrame?.visible_area}
+            passingLanes={currentFrame?.passing_lanes}
+            showPassingLanes={showPassingLanes}
             showVisibleArea={showVisibleArea}
             showVelocity={showVelocity}
             showGhostPrediction={showGhostPrediction}
@@ -324,6 +340,19 @@ export const HighlightView: React.FC<HighlightViewProps> = ({
 
             {/* 우측: 시각화 옵션 토글 */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
+              <button
+                onClick={() => setShowPassingLanes((v) => !v)}
+                className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border transition-colors ${
+                  showPassingLanes
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    : "bg-slate-800 text-slate-400 border-slate-700"
+                }`}
+                title="360 패스길 레이캐스팅 표시"
+              >
+                <GitFork className="w-3.5 h-3.5" />
+                <span>패스길</span>
+              </button>
+
               <button
                 onClick={() => setShowVisibleArea((v) => !v)}
                 className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border transition-colors ${
