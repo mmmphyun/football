@@ -100,8 +100,34 @@ class TestFastAPIEndpoints:
             "match_id": 3788758,
             "duration_min": 90.0,
             "teams": {
-                "911": {"formation": "433"},
-                "2358": {"formation": "352"},
+                "911": {
+                    "team_name": "Ukraine",
+                    "formation": {
+                        "defensive": {"formation": "4-4-2", "line_height": 35.0},
+                        "buildup": {"formation": "3-2-4-1", "line_height": 45.0},
+                        "attacking": {"formation": "2-3-5", "line_height": 72.0},
+                    },
+                    "playbook": [
+                        {
+                            "pattern_id": "side_overload_cutback",
+                            "name": "Side Overload & Cutback",
+                            "occurrences": 3,
+                        }
+                    ],
+                    "timeline": [{"minute_start": 0, "minute_end": 15, "possession_pct": 55.0}],
+                    "pressure": {"pressure_traps": [{"zone": "Right Touchline Trap", "count": 2}]},
+                },
+                "2358": {
+                    "team_name": "North Macedonia",
+                    "formation": {
+                        "defensive": {"formation": "5-3-2", "line_height": 28.0},
+                        "buildup": {"formation": "3-5-2", "line_height": 42.0},
+                        "attacking": {"formation": "3-3-4", "line_height": 65.0},
+                    },
+                    "playbook": [],
+                    "timeline": [],
+                    "pressure": {"pressure_traps": []},
+                },
             },
         }
         save_match_summary(3788758, summary_payload, db_path=temp_db)
@@ -112,6 +138,14 @@ class TestFastAPIEndpoints:
         summary = response.json()
         assert summary["match_id"] == 3788758
         assert "teams" in summary
+        assert "911" in summary["teams"]
+        ukr = summary["teams"]["911"]
+        assert "defensive" in ukr["formation"]
+        assert "buildup" in ukr["formation"]
+        assert "attacking" in ukr["formation"]
+        assert "playbook" in ukr
+        assert "timeline" in ukr
+        assert "pressure" in ukr
 
         # 미존재 경기 요약 (404)
         not_found_res = client.get("/api/matches/999999/summary")
@@ -160,7 +194,21 @@ class TestFastAPIEndpoints:
         assert empty_frame_res.status_code == 404
 
         # 프레임 저장
-        frames_payload = [{"frame_index": 0, "timestamp_sec": 202.0, "players": []}]
+        frames_payload = [
+            {
+                "frame_index": 0,
+                "timestamp_sec": 202.0,
+                "players": [],
+                "passing_lanes": [
+                    {
+                        "from_location": [60.0, 40.0],
+                        "to_location": [75.0, 50.0],
+                        "is_open": True,
+                        "is_selected": True,
+                    }
+                ],
+            }
+        ]
         players_payload = [{"player_id": 10655, "player_name": "Andriy Yarmolenko"}]
         save_highlight_frames(
             highlight_id=hl_id,
@@ -178,3 +226,5 @@ class TestFastAPIEndpoints:
         assert frames_data["has_360"] is True
         assert len(frames_data["frames"]) == 1
         assert len(frames_data["players"]) == 1
+        assert "passing_lanes" in frames_data["frames"][0]
+        assert frames_data["frames"][0]["passing_lanes"][0]["is_open"] is True

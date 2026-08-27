@@ -41,16 +41,16 @@
 - [x] 브랜치: `git checkout -b feat/#43-pipeline-and-api`
 - [x] 구현: `highlights.py`, `frames.py` (열린/차단된 패스길 레이캐스팅), `processing.py`, `cli.py`, `main.py`
 - [x] 검증: `uv run ruff check backend/` && `uv run pytest backend/`
-- [ ] PR: `gh pr create --title "[Phase 3] 하이라이트 및 API 구축" --body "Closes #43"`
+- [x] PR: `gh pr create --title "[Phase 3] 하이라이트 및 API 구축" --body "Closes #43"` (PR #44 Merged)
 
 ---
 
 ## Phase 4. 백엔드 테스트 구축
-- [ ] 이슈: `gh issue create --title "[Phase 4] 백엔드 단위/통합 테스트 구축" --label "phase:4-tests,type:test"`
-- [ ] 브랜치: `git checkout -b feat/#4-backend-tests`
-- [ ] 구현: `tests/fixtures/`, `tests/test_analysis.py`, `tests/test_highlights.py`, `tests/test_api.py`
-- [ ] 검증: `uv run pytest backend/tests/ -v`
-- [ ] PR: `gh pr create --title "[Phase 4] 백엔드 테스트 구축" --body "Closes #4"`
+- [x] 이슈: `gh issue create --title "[Phase 4] 백엔드 단위/통합 테스트 구축" --label "phase:4-tests,type:test"` (#45)
+- [x] 브랜치: `git checkout -b feat/#45-backend-tests`
+- [x] 구현: `tests/fixtures/`, `tests/test_analysis.py`, `tests/test_highlights.py`, `tests/test_api.py`, `tests/test_storage_pipeline.py`
+- [x] 검증: `uv run pytest backend/tests/ -v` && `uv run ruff check backend/`
+- [ ] PR: `gh pr create --title "[Phase 4] 백엔드 테스트 구축" --body "Closes #45"`
 
 ---
 
