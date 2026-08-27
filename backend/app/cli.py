@@ -132,18 +132,31 @@ def handle_process(args: argparse.Namespace) -> None:
         return
 
     if args.all:
-        logger.info("전체 등록된 대회 및 경기 일괄 가공 시작...")
+        logger.info("전체 등록된 경기 일괄 가공 시작...")
         comps = get_competitions(db_path=args.db_path)
         total_success = 0
         total_failed = 0
-        for comp in comps:
-            c_id = comp["competition_id"]
-            s_id = comp["season_id"]
-            stats = process_competition(
-                c_id, s_id, downloader=dl, db_path=args.db_path, force=args.force
-            )
-            total_success += stats["success"]
-            total_failed += stats["failed"]
+        if comps:
+            for comp in comps:
+                c_id = comp["competition_id"]
+                s_id = comp["season_id"]
+                stats = process_competition(
+                    c_id, s_id, downloader=dl, db_path=args.db_path, force=args.force
+                )
+                total_success += stats["success"]
+                total_failed += stats["failed"]
+        else:
+            from app.storage import get_db
+            with get_db(args.db_path) as conn:
+                rows = conn.execute("SELECT match_id FROM matches").fetchall()
+                match_ids = [r["match_id"] for r in rows]
+            logger.info("matches 테이블에서 %d개 경기 발견", len(match_ids))
+            for m_id in match_ids:
+                ok = process_match(m_id, downloader=dl, db_path=args.db_path, force=args.force)
+                if ok:
+                    total_success += 1
+                else:
+                    total_failed += 1
         logger.info("전체 가공 완료: 성공 %d건, 실패 %d건", total_success, total_failed)
         return
 

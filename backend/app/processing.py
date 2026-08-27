@@ -22,23 +22,32 @@ logger = logging.getLogger(__name__)
 
 def _extract_formation_anchors(
     summary_data: dict[str, Any],
-) -> dict[int, dict[int, tuple[float, float]]]:
-    """분석 요약 결과에서 팀별 선수 포메이션 평균 위치 앵커 맵을 추출합니다."""
-    anchors: dict[int, dict[int, tuple[float, float]]] = {}
+) -> dict[int, dict[str, dict[int, tuple[float, float]]]]:
+    """분석 요약 결과에서 팀별 3대 국면(수비/빌드업/공격) 선수 평균 위치 앵커 맵을 추출합니다."""
+    anchors: dict[int, dict[str, dict[int, tuple[float, float]]]] = {}
     teams = summary_data.get("teams", {})
     for team_id_key, t_data in teams.items():
         team_id = int(team_id_key)
         formation = t_data.get("formation", {})
-        players = formation.get("players") or formation.get("players_overall") or []
-        team_anchor_map: dict[int, tuple[float, float]] = {}
-        for p in players:
-            p_id = p.get("player_id")
-            # 실측 x, y 또는 표준 anchor_x, anchor_y
-            x = p.get("x") if p.get("x") is not None else p.get("anchor_x")
-            y = p.get("y") if p.get("y") is not None else p.get("anchor_y")
-            if p_id is not None and x is not None and y is not None:
-                team_anchor_map[p_id] = (float(x), float(y))
-        anchors[team_id] = team_anchor_map
+        team_phase_map: dict[str, dict[int, tuple[float, float]]] = {}
+
+        for phase in ("defensive", "buildup", "attacking", "overall"):
+            if phase in formation and isinstance(formation[phase], dict):
+                p_list = formation[phase].get("players") or formation[phase].get("all_players") or []
+            else:
+                p_list = formation.get("players") or formation.get("players_overall") or []
+
+            phase_anchor_map: dict[int, tuple[float, float]] = {}
+            for p in p_list:
+                p_id = p.get("player_id")
+                x = p.get("x") if p.get("x") is not None else p.get("anchor_x")
+                y = p.get("y") if p.get("y") is not None else p.get("anchor_y")
+                if p_id is not None and x is not None and y is not None:
+                    phase_anchor_map[p_id] = (float(x), float(y))
+
+            team_phase_map[phase] = phase_anchor_map
+
+        anchors[team_id] = team_phase_map
     return anchors
 
 

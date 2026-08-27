@@ -105,12 +105,35 @@ def _build_frame_description(ev: dict[str, Any]) -> str:
     return type_name
 
 
+def _resolve_anchor(
+    team_id: int | None,
+    p_id: int | None,
+    phase: str,
+    pos_id: int | None,
+    formation_anchors: dict[int, Any] | None,
+) -> tuple[float, float]:
+    """팀, 선수 ID, 국면(defensive/buildup/attacking) 및 포지션을 기반으로 적절한 앵커 좌표를 산출합니다."""
+    if formation_anchors and team_id and p_id and team_id in formation_anchors:
+        t_anchors = formation_anchors[team_id]
+        # 1. 3대 국면 딕셔너리 구조인 경우
+        if isinstance(t_anchors, dict) and phase in t_anchors and isinstance(t_anchors[phase], dict):
+            if p_id in t_anchors[phase]:
+                return t_anchors[phase][p_id]
+            if "overall" in t_anchors and p_id in t_anchors["overall"]:
+                return t_anchors["overall"][p_id]
+        # 2. 평면 딕셔너리 구조인 경우
+        elif isinstance(t_anchors, dict) and p_id in t_anchors:
+            return t_anchors[p_id]
+
+    return get_position_anchor(pos_id)
+
+
 def build_highlight_frames(
     events: list[dict[str, Any]],
     three_sixty_frames: list[dict[str, Any]] | None,
     lineups: list[dict[str, Any]],
     highlight: dict[str, Any],
-    formation_anchors: dict[int, dict[int, tuple[float, float]]] | None = None,
+    formation_anchors: dict[int, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], bool]:
     """하이라이트 이벤트 윈도우에 대한 360 위치/속도/외삽 프레임 시퀀스를 구성합니다.
 
@@ -185,6 +208,29 @@ def build_highlight_frames(
         raw_players: list[dict[str, Any]] = []
         visible_area: list[float] = []
 
+        # 이벤트 시점의 국면 판별 (홈팀/원정팀 기준)
+        poss_team_id = ev.get("possession_team", {}).get("id")
+        type_name = ev.get("type", {}).get("name", "")
+        ball_x = float(ball_loc[0]) if ball_loc and len(ball_loc) >= 1 else 60.0
+
+        if poss_team_id != actor_team_id or type_name in {
+            "Pressure",
+            "Tackle",
+            "Interception",
+            "Block",
+            "Clearance",
+            "Duel",
+            "Foul Committed",
+        }:
+            home_phase = "defensive"
+            opp_phase = "attacking"
+        elif ball_x < 60.0:
+            home_phase = "buildup"
+            opp_phase = "defensive"
+        else:
+            home_phase = "attacking"
+            opp_phase = "defensive"
+
         if f360 is not None:
             window_has_360 = True
             visible_area = f360.get("visible_area", [])
@@ -211,10 +257,14 @@ def build_highlight_frames(
 
                 # 포메이션 앵커 좌표 조회
                 anchor_x, anchor_y = None, None
-                if is_actor and actor_player_id and formation_anchors and actor_team_id:
-                    team_anchors = formation_anchors.get(actor_team_id, {})
-                    if actor_player_id in team_anchors:
-                        anchor_x, anchor_y = team_anchors[actor_player_id]
+                if is_actor and actor_player_id and actor_team_id:
+                    home_team_info = lineup_maps.get(actor_team_id, {})
+                    p_meta = home_team_info.get("players", {}).get(actor_player_id, {})
+                    pos_id = p_meta.get("primary_position_id")
+                    anchor = _resolve_anchor(
+                        actor_team_id, actor_player_id, home_phase, pos_id, formation_anchors
+                    )
+                    anchor_x, anchor_y = anchor[0], anchor[1]
 
                 player_entry = {
                     "player_id": actor_player_id if is_actor else None,
@@ -233,7 +283,7 @@ def build_highlight_frames(
                 if is_actor:
                     prev_actor_loc = (float(loc[0]), float(loc[1]))
 
-            # 22명 가상 추론: 360 프레임 밖 미인식 선수를 포메이션 앵커 위치에 가상 배치
+            # 22명 가상 추론: 360 프레임 밖 미인식 선수를 국면별 앵커 위치에 가상 배치
             # 1) 아군 팀 미인식 선수 보충 (선발 11명 목표)
             home_team_info = lineup_maps.get(actor_team_id, {})
             home_starters = home_team_info.get("starting_xi", [])
@@ -247,13 +297,9 @@ def build_highlight_frames(
             for p_id in teammates_to_add:
                 p_meta = home_players_meta.get(p_id, {})
                 pos_id = p_meta.get("primary_position_id")
-                anchor = (
-                    formation_anchors.get(actor_team_id, {}).get(p_id)
-                    if formation_anchors
-                    else None
+                anchor = _resolve_anchor(
+                    actor_team_id, p_id, home_phase, pos_id, formation_anchors
                 )
-                if not anchor:
-                    anchor = get_position_anchor(pos_id)
 
                 raw_players.append(
                     {
@@ -282,13 +328,9 @@ def build_highlight_frames(
                 for p_id in opponents_to_add:
                     p_meta = opp_players_meta.get(p_id, {})
                     pos_id = p_meta.get("primary_position_id")
-                    anchor = (
-                        formation_anchors.get(opponent_team_id, {}).get(p_id)
-                        if formation_anchors
-                        else None
+                    anchor = _resolve_anchor(
+                        opponent_team_id, p_id, opp_phase, pos_id, formation_anchors
                     )
-                    if not anchor:
-                        anchor = get_position_anchor(pos_id)
 
                     # 상대팀은 반대 진영(120 - x, 80 - y)으로 대칭 배치
                     opp_x = round(120.0 - anchor[0], 2)
@@ -338,13 +380,9 @@ def build_highlight_frames(
                     continue
                 p_meta = home_team_info.get("players", {}).get(p_id, {})
                 pos_id = p_meta.get("primary_position_id")
-                anchor = (
-                    formation_anchors.get(actor_team_id, {}).get(p_id)
-                    if formation_anchors
-                    else None
+                anchor = _resolve_anchor(
+                    actor_team_id, p_id, home_phase, pos_id, formation_anchors
                 )
-                if not anchor:
-                    anchor = get_position_anchor(pos_id)
                 raw_players.append(
                     {
                         "player_id": p_id,
@@ -366,13 +404,9 @@ def build_highlight_frames(
                 for p_id in opp_team_info.get("starting_xi", []):
                     p_meta = opp_team_info.get("players", {}).get(p_id, {})
                     pos_id = p_meta.get("primary_position_id")
-                    anchor = (
-                        formation_anchors.get(opponent_team_id, {}).get(p_id)
-                        if formation_anchors
-                        else None
+                    anchor = _resolve_anchor(
+                        opponent_team_id, p_id, opp_phase, pos_id, formation_anchors
                     )
-                    if not anchor:
-                        anchor = get_position_anchor(pos_id)
                     opp_x = round(120.0 - anchor[0], 2)
                     opp_y = round(80.0 - anchor[1], 2)
                     raw_players.append(
