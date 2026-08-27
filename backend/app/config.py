@@ -6,11 +6,19 @@ from pathlib import Path
 PITCH_LENGTH: float = 120.0
 PITCH_WIDTH: float = 80.0
 
-# 3분할 진영 X축 경계값 (단위: 미터)
+# 3분할 진영 X축 경계값 및 국면 전환 기준선 (단위: 미터)
 # StatsBomb은 팀 공격 방향과 무관하게 항상 x=0(자진영 골라인) -> x=120(상대진영 골라인)으로 기록됨
 DEFENSIVE_THIRD_X: float = 40.0
+HALF_PITCH_X: float = 60.0  # 빌드업(x < 60.0)과 공격(x >= 60.0) 국면 분할 기준선
 MIDDLE_THIRD_X: float = 80.0
 ATTACKING_THIRD_X: float = 120.0
+
+# 360 패스길 레이캐스팅 및 전술 판정 상수
+PASS_LANE_BLOCK_RADIUS: float = 2.5  # 상대 수비수에 의한 패스길 차단 판정 반경 (미터)
+PPDA_OPPONENT_HALF_X: float = 40.0  # PPDA 계산 시 상대 진영 수비 액션 X축 기준선 (x >= 40.0)
+PRESSURE_TRAP_TIME_WINDOW_SEC: float = 3.0  # 압박 트랩 판정 시간 윈도우 (초)
+PRESSURE_TRAP_MIN_PLAYERS: int = 2  # 압박 트랩 동시 참여 최소 수비수 수
+TIMELINE_INTERVAL_MINUTES: int = 15  # 타임라인 전술 슬라이스 기본 구간 (분)
 
 # 바둑판 피치 12x8 그리드 분할 (셀 크기 10m x 10m)
 ZONES_X: int = 12
