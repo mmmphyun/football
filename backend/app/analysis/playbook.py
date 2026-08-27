@@ -515,12 +515,16 @@ def compute_playbook_summary(
         ],
     }
 
-    for pid, bucket in pattern_buckets.items():
-        if not bucket["sequences"] and pid in dummy_draws:
-            bucket["sequences"] = [dummy_draws[pid]]
-
-    # 4. 발생 횟수 및 xG 기준 정렬하여 반환
-    results = list(pattern_buckets.values())
+    # 4. 해당 경기에서 실제로 발생한 패턴(occurrences > 0)만 추출하여 발생 횟수 및 xG 기준 정렬
+    results = [b for b in pattern_buckets.values() if b["occurrences"] > 0]
     results.sort(key=lambda p: (p["occurrences"], p["total_xg"]), reverse=True)
+
+    # 공격 이벤트가 극단적으로 적어 실측 패턴이 0개인 경우에만 더미 궤적을 가진 기본 패턴 1종 폴백
+    if not results:
+        fallback_pattern = pattern_buckets.get("side_overload_cutback")
+        if fallback_pattern:
+            if not fallback_pattern["sequences"] and "side_overload_cutback" in dummy_draws:
+                fallback_pattern["sequences"] = [dummy_draws["side_overload_cutback"]]
+            results = [fallback_pattern]
 
     return results
