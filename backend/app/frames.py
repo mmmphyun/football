@@ -182,6 +182,9 @@ def build_highlight_frames(
     frames: list[dict[str, Any]] = []
     window_has_360 = False
 
+    hl_team_id = highlight.get("team_id") or (all_team_ids[0] if all_team_ids else 0)
+    hl_opponent_id = next((t_id for t_id in all_team_ids if t_id != hl_team_id), None)
+
     prev_timestamp: float | None = None
     prev_actor_loc: tuple[float, float] | None = None
 
@@ -193,27 +196,28 @@ def build_highlight_frames(
         dt = max(0.0, dt)
 
         f360 = three_sixty_map.get(ev_id)
-        ball_loc = ev.get("location")
+        raw_ball_loc = ev.get("location")
         actor_player_id = ev.get("player", {}).get("id")
-        actor_team_id = ev.get("team", {}).get("id") or (all_team_ids[0] if all_team_ids else 0)
+        ev_team_id = ev.get("team", {}).get("id") or hl_team_id
 
-        opponent_team_id = None
-        for t_id in all_team_ids:
-            if t_id != actor_team_id:
-                opponent_team_id = t_id
-                break
-        if opponent_team_id is None and all_team_ids:
-            opponent_team_id = all_team_ids[-1]
+        # 하이라이트 주체 팀(hl_team_id) 기준 좌표계 통일 (상대팀 이벤트 시 180도 반전)
+        is_opp_event = (ev_team_id != hl_team_id)
+
+        if raw_ball_loc and len(raw_ball_loc) >= 2:
+            bx, by = float(raw_ball_loc[0]), float(raw_ball_loc[1])
+            ball_loc = [round(120.0 - bx, 2), round(80.0 - by, 2)] if is_opp_event else [round(bx, 2), round(by, 2)]
+        else:
+            ball_loc = [60.0, 40.0]
 
         raw_players: list[dict[str, Any]] = []
         visible_area: list[float] = []
 
-        # 이벤트 시점의 국면 판별 (홈팀/원정팀 기준)
+        # 이벤트 시점의 국면 판별 (하이라이트 주체 팀 기준)
         poss_team_id = ev.get("possession_team", {}).get("id")
         type_name = ev.get("type", {}).get("name", "")
-        ball_x = float(ball_loc[0]) if ball_loc and len(ball_loc) >= 1 else 60.0
+        ball_x = ball_loc[0]
 
-        if poss_team_id != actor_team_id or type_name in {
+        if poss_team_id != hl_team_id or (ev_team_id != hl_team_id and type_name in {
             "Pressure",
             "Tackle",
             "Interception",
@@ -221,7 +225,7 @@ def build_highlight_frames(
             "Clearance",
             "Duel",
             "Foul Committed",
-        }:
+        }):
             home_phase = "defensive"
             opp_phase = "attacking"
         elif ball_x < 60.0:
@@ -233,16 +237,28 @@ def build_highlight_frames(
 
         if f360 is not None:
             window_has_360 = True
-            visible_area = f360.get("visible_area", [])
-            freeze_players = f360.get("freeze_frame", [])
+            raw_vis = f360.get("visible_area", [])
+            if is_opp_event and raw_vis:
+                visible_area = [
+                    round(120.0 - raw_vis[i], 2) if i % 2 == 0 else round(80.0 - raw_vis[i], 2)
+                    for i in range(len(raw_vis))
+                ]
+            else:
+                visible_area = raw_vis
 
+            freeze_players = f360.get("freeze_frame", [])
             teammates_present = 0
             opponents_present = 0
 
             for fp in freeze_players:
-                loc = fp.get("location", [60.0, 40.0])
+                floc = fp.get("location", [60.0, 40.0])
+                fx, fy = float(floc[0]), float(floc[1])
+                loc = [round(120.0 - fx, 2), round(80.0 - fy, 2)] if is_opp_event else [round(fx, 2), round(fy, 2)]
+
                 is_actor = bool(fp.get("actor", False))
-                is_teammate = bool(fp.get("teammate", False))
+                # 하이라이트 주체 팀 기준 teammate 여부 일관화
+                fp_is_teammate_raw = bool(fp.get("teammate", False))
+                is_teammate = (fp_is_teammate_raw if not is_opp_event else not fp_is_teammate_raw)
                 is_keeper = bool(fp.get("keeper", False))
 
                 if is_teammate:
@@ -257,12 +273,12 @@ def build_highlight_frames(
 
                 # 포메이션 앵커 좌표 조회
                 anchor_x, anchor_y = None, None
-                if is_actor and actor_player_id and actor_team_id:
-                    home_team_info = lineup_maps.get(actor_team_id, {})
-                    p_meta = home_team_info.get("players", {}).get(actor_player_id, {})
+                if is_actor and actor_player_id and ev_team_id:
+                    p_team_info = lineup_maps.get(ev_team_id, {})
+                    p_meta = p_team_info.get("players", {}).get(actor_player_id, {})
                     pos_id = p_meta.get("primary_position_id")
                     anchor = _resolve_anchor(
-                        actor_team_id, actor_player_id, home_phase, pos_id, formation_anchors
+                        ev_team_id, actor_player_id, home_phase if is_teammate else opp_phase, pos_id, formation_anchors
                     )
                     anchor_x, anchor_y = anchor[0], anchor[1]
 
@@ -284,8 +300,8 @@ def build_highlight_frames(
                     prev_actor_loc = (float(loc[0]), float(loc[1]))
 
             # 22명 가상 추론: 360 프레임 밖 미인식 선수를 국면별 앵커 위치에 가상 배치
-            # 1) 아군 팀 미인식 선수 보충 (선발 11명 목표)
-            home_team_info = lineup_maps.get(actor_team_id, {})
+            # 1) 아군 팀 미인식 선수 보충 (선발 11명 정원 목표)
+            home_team_info = lineup_maps.get(hl_team_id, {})
             home_starters = home_team_info.get("starting_xi", [])
             home_players_meta = home_team_info.get("players", {})
             needed_teammates = max(0, 11 - teammates_present)
@@ -298,7 +314,7 @@ def build_highlight_frames(
                 p_meta = home_players_meta.get(p_id, {})
                 pos_id = p_meta.get("primary_position_id")
                 anchor = _resolve_anchor(
-                    actor_team_id, p_id, home_phase, pos_id, formation_anchors
+                    hl_team_id, p_id, home_phase, pos_id, formation_anchors
                 )
 
                 raw_players.append(
@@ -316,9 +332,9 @@ def build_highlight_frames(
                     }
                 )
 
-            # 2) 상대 팀 미인식 선수 보충 (선발 11명 목표)
-            if opponent_team_id:
-                opp_team_info = lineup_maps.get(opponent_team_id, {})
+            # 2) 상대 팀 미인식 선수 보충 (선발 11명 정원 목표)
+            if hl_opponent_id:
+                opp_team_info = lineup_maps.get(hl_opponent_id, {})
                 opp_starters = opp_team_info.get("starting_xi", [])
                 opp_players_meta = opp_team_info.get("players", {})
                 needed_opponents = max(0, 11 - opponents_present)
@@ -329,7 +345,7 @@ def build_highlight_frames(
                     p_meta = opp_players_meta.get(p_id, {})
                     pos_id = p_meta.get("primary_position_id")
                     anchor = _resolve_anchor(
-                        opponent_team_id, p_id, opp_phase, pos_id, formation_anchors
+                        hl_opponent_id, p_id, opp_phase, pos_id, formation_anchors
                     )
 
                     # 상대팀은 반대 진영(120 - x, 80 - y)으로 대칭 배치
@@ -352,17 +368,19 @@ def build_highlight_frames(
                     )
         else:
             # 360 데이터가 없는 이벤트인 경우 액터 위치 + 21명 포메이션 앵커 가상 프레임 생성
-            effective_loc = ball_loc if ball_loc is not None else [60.0, 40.0]
+            effective_loc = ball_loc
             vx, vy = 0.0, 0.0
             if prev_actor_loc is not None and dt > 0.01:
                 vx, vy = calculate_velocity(prev_actor_loc, effective_loc, dt)
+
+            is_actor_teammate = (ev_team_id == hl_team_id)
 
             raw_players.append(
                 {
                     "player_id": actor_player_id,
                     "location": effective_loc,
                     "is_actor": True,
-                    "is_teammate": True,
+                    "is_teammate": is_actor_teammate,
                     "is_keeper": False,
                     "vx": vx,
                     "vy": vy,
@@ -373,15 +391,15 @@ def build_highlight_frames(
             )
             prev_actor_loc = (float(effective_loc[0]), float(effective_loc[1]))
 
-            # 아군 선발 나머지 10명 가상 배치
-            home_team_info = lineup_maps.get(actor_team_id, {})
+            # 아군 선발 나머지 선수들 가상 배치
+            home_team_info = lineup_maps.get(hl_team_id, {})
             for p_id in home_team_info.get("starting_xi", []):
-                if p_id == actor_player_id:
+                if is_actor_teammate and p_id == actor_player_id:
                     continue
                 p_meta = home_team_info.get("players", {}).get(p_id, {})
                 pos_id = p_meta.get("primary_position_id")
                 anchor = _resolve_anchor(
-                    actor_team_id, p_id, home_phase, pos_id, formation_anchors
+                    hl_team_id, p_id, home_phase, pos_id, formation_anchors
                 )
                 raw_players.append(
                     {
@@ -398,14 +416,16 @@ def build_highlight_frames(
                     }
                 )
 
-            # 상대팀 선발 11명 가상 배치
-            if opponent_team_id:
-                opp_team_info = lineup_maps.get(opponent_team_id, {})
+            # 상대팀 선발 선수들 가상 배치
+            if hl_opponent_id:
+                opp_team_info = lineup_maps.get(hl_opponent_id, {})
                 for p_id in opp_team_info.get("starting_xi", []):
+                    if (not is_actor_teammate) and p_id == actor_player_id:
+                        continue
                     p_meta = opp_team_info.get("players", {}).get(p_id, {})
                     pos_id = p_meta.get("primary_position_id")
                     anchor = _resolve_anchor(
-                        opponent_team_id, p_id, opp_phase, pos_id, formation_anchors
+                        hl_opponent_id, p_id, opp_phase, pos_id, formation_anchors
                     )
                     opp_x = round(120.0 - anchor[0], 2)
                     opp_y = round(80.0 - anchor[1], 2)
@@ -467,7 +487,7 @@ def build_highlight_frames(
             "players": extrapolated_players,
             "passing_lanes": passing_lanes,
             "description": _build_frame_description(ev),
-            "team_id": actor_team_id,
+            "team_id": ev_team_id,
             "team_name": ev.get("team", {}).get("name", ""),
         }
         frames.append(frame_data)
