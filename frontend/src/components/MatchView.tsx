@@ -632,11 +632,32 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                   badgeColor="emerald"
                 />
                 <StatCard
-                  title="빠른 공격 전환 (8초 이내)"
+                  title="고속 역습 전환"
                   value={`${transitions?.fast_transitions_to_att_third ?? transitions?.fast_transitions ?? 0}회`}
-                  subtitle="파이널 써드 도달 성공"
-                  badgeColor="amber"
+                  subtitle="8초 내 파이널 서드 진입"
+                  badge="Fast Counter"
+                  badgeColor="rose"
                 />
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-xs text-slate-300">
+                <div className="font-bold text-white flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-pink-400" />
+                  <span>공수 전환 속도 (Transitions) 분석 안내</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  볼을 빼앗은(Turnover Won) 순간부터 슈팅이나 파이널 서드 박스 진입까지 전개된 속도와 경로를 추적합니다.
+                </p>
+                <div className="pt-2 border-t border-slate-800 space-y-1.5 font-mono text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                    <span className="text-pink-300 font-bold">핑크색 라인</span>: 전진 속도 5.0m/s 이상 고속 역습
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                    <span className="text-cyan-300 font-bold">청록색 라인</span>: 안정적인 템포의 지공 빌드업 전환
+                  </div>
+                </div>
               </div>
             </div>
           )}

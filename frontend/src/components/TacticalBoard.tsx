@@ -578,28 +578,38 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     <circle
                       cx={tx}
                       cy={ty}
-                      r="28"
-                      fill="rgba(239, 68, 68, 0.25)"
+                      r="36"
+                      fill="rgba(239, 68, 68, 0.22)"
                       stroke="#ef4444"
-                      strokeWidth="2"
-                      strokeDasharray="4 2"
+                      strokeWidth="2.5"
+                      strokeDasharray="6 3"
                     />
                     <circle
                       cx={tx}
                       cy={ty}
-                      r="10"
-                      fill="#ef4444"
+                      r="14"
+                      fill="#dc2626"
                       stroke="#ffffff"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
+                      className="drop-shadow-lg"
+                    />
+                    <rect
+                      x={tx - 70}
+                      y={ty - 44}
+                      width="140"
+                      height="24"
+                      rx="6"
+                      fill="rgba(15, 23, 42, 0.9)"
+                      stroke="#ef4444"
+                      strokeWidth="1.5"
                     />
                     <text
                       x={tx}
-                      y={ty - 34}
+                      y={ty - 28}
                       fill="#fca5a5"
-                      fontSize="11"
+                      fontSize="13"
                       fontWeight="bold"
                       textAnchor="middle"
-                      className="drop-shadow"
                     >
                       {trap.zone} ({trap.count}회)
                     </text>
@@ -607,7 +617,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 );
               })}
 
-            {/* 개별 압박 마커 */}
+            {/* 개별 압박 마커 (환공포증 완화: 은은한 배경 점으로 렌더링) */}
             {pressureEvents &&
               pressureEvents.map((pe, idx) => {
                 const [sx, sy] = toSvg(pe.x, pe.y);
@@ -617,15 +627,37 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     <circle
                       cx={sx}
                       cy={sy}
-                      r="5"
+                      r={pe.is_high_press ? 3.5 : 2.5}
                       fill={color}
-                      fillOpacity="0.75"
-                      stroke="#ffffff"
-                      strokeWidth="1.5"
+                      fillOpacity={pe.is_high_press ? 0.45 : 0.25}
                     />
                   </g>
                 );
               })}
+
+            {/* 압박 탭 범례 (우측 상단) */}
+            <g transform={`translate(${SVG_WIDTH - 280}, ${pitchY + 15})`}>
+              <rect
+                width="260"
+                height="80"
+                rx="8"
+                fill="rgba(15, 23, 42, 0.92)"
+                stroke="#334155"
+                strokeWidth="1.5"
+              />
+              <circle cx="20" cy="22" r="7" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
+              <text x="35" y="26" fill="#fca5a5" fontSize="12" fontWeight="bold">
+                압박 트랩 핫스팟 (2인+ 탈취)
+              </text>
+              <circle cx="20" cy="45" r="4" fill="#ef4444" fillOpacity="0.8" />
+              <text x="35" y="49" fill="#f87171" fontSize="11">
+                하이프레스 이벤트 (x ≥ 40m)
+              </text>
+              <circle cx="20" cy="65" r="3" fill="#f59e0b" fillOpacity="0.6" />
+              <text x="35" y="69" fill="#fcd34d" fontSize="11">
+                일반 압박 시도
+              </text>
+            </g>
           </g>
         )}
 
@@ -639,19 +671,45 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 const color = seq.is_fast ? "#ec4899" : "#06b6d4";
                 return (
                   <g key={`trans-seq-${idx}`}>
-                    <circle cx={sx} cy={sy} r="6" fill={color} stroke="#ffffff" strokeWidth="1.5" />
+                    <circle cx={sx} cy={sy} r="7" fill={color} stroke="#ffffff" strokeWidth="2" />
                     <line
                       x1={sx}
                       y1={sy}
                       x2={ex}
                       y2={ey}
                       stroke={color}
-                      strokeWidth={seq.is_fast ? "3" : "2"}
+                      strokeWidth={seq.is_fast ? "3.5" : "2.5"}
                       strokeOpacity="0.85"
                     />
+                    <circle cx={ex} cy={ey} r="4" fill={color} fillOpacity="0.8" />
                   </g>
                 );
               })}
+
+            {/* 전환 속도 범례 (우측 상단) */}
+            <g transform={`translate(${SVG_WIDTH - 300}, ${pitchY + 15})`}>
+              <rect
+                width="280"
+                height="80"
+                rx="8"
+                fill="rgba(15, 23, 42, 0.92)"
+                stroke="#334155"
+                strokeWidth="1.5"
+              />
+              <circle cx="20" cy="22" r="6" fill="#ec4899" stroke="#ffffff" strokeWidth="1.5" />
+              <line x1="30" y1="22" x2="60" y2="22" stroke="#ec4899" strokeWidth="3" />
+              <text x="70" y="26" fill="#f472b6" fontSize="12" fontWeight="bold">
+                고속 역습 (속도 &gt; 5.0m/s, 박스 진입)
+              </text>
+              <circle cx="20" cy="48" r="5" fill="#06b6d4" stroke="#ffffff" strokeWidth="1.5" />
+              <line x1="30" y1="48" x2="60" y2="48" stroke="#06b6d4" strokeWidth="2.5" />
+              <text x="70" y="52" fill="#67e8f9" fontSize="12" fontWeight="bold">
+                지공 전환 (안정적 템포 전개)
+              </text>
+              <text x="20" y="70" fill="#94a3b8" fontSize="10">
+                * 원: 턴오버 발생 지점 | 선: 공격 전개 도달 경로
+              </text>
+            </g>
           </g>
         )}
 
@@ -806,34 +864,86 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         )}
 
         {/* 6. 패스 네트워크 엣지 및 노드 */}
-        {showPassNetwork && passEdges && (
+        {showPassNetwork && (
           <g>
-            {passEdges.map((edge, idx) => {
-              const passerId = edge.passer_id ?? edge.source_id;
-              const recipientId = edge.recipient_id ?? edge.target_id;
-              if (passerId === undefined || recipientId === undefined) return null;
+            {/* 패스 엣지 (화살표 연결선) */}
+            {passEdges &&
+              passEdges.map((edge, idx) => {
+                const passerId = edge.passer_id ?? edge.source_id;
+                const recipientId = edge.recipient_id ?? edge.target_id;
+                if (passerId === undefined || recipientId === undefined) return null;
 
-              const src = nodeMap.get(passerId);
-              const dst = nodeMap.get(recipientId);
-              if (!src || !dst) return null;
+                const src = nodeMap.get(passerId);
+                const dst = nodeMap.get(recipientId);
+                if (!src || !dst) return null;
 
-              const [x1, y1] = toSvg(src.x, src.y);
-              const [x2, y2] = toSvg(dst.x, dst.y);
-              const count = edge.count ?? edge.pass_count ?? 1;
+                const [x1, y1] = toSvg(src.x, src.y);
+                const [x2, y2] = toSvg(dst.x, dst.y);
+                const count = edge.count ?? edge.pass_count ?? 1;
 
-              return (
-                <line
-                  key={`pass-edge-${idx}`}
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke="rgba(56, 189, 248, 0.65)"
-                  strokeWidth={Math.max(1.5, Math.min(7, count * 0.7))}
-                  markerEnd="url(#pass-arrow)"
-                />
-              );
-            })}
+                return (
+                  <line
+                    key={`pass-edge-${idx}`}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="rgba(56, 189, 248, 0.7)"
+                    strokeWidth={Math.max(1.8, Math.min(8, count * 0.75))}
+                    markerEnd="url(#pass-arrow)"
+                  />
+                );
+              })}
+
+            {/* 패스 노드 (선수 원형 마커 및 이름/등번호/패스 횟수) */}
+            {passNodes &&
+              passNodes.map((node) => {
+                const [nx, ny] = toSvg(node.x, node.y);
+                const r = Math.max(14, Math.min(22, 12 + (node.pass_count ?? 0) * 0.35));
+                return (
+                  <g key={`pass-node-${node.player_id}`}>
+                    <circle
+                      cx={nx}
+                      cy={ny}
+                      r={r}
+                      fill="#0284c7"
+                      stroke="#ffffff"
+                      strokeWidth="2.5"
+                      className="drop-shadow-lg"
+                    />
+                    <text
+                      x={nx}
+                      y={ny + 4}
+                      fill="#ffffff"
+                      fontSize="12"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {node.jersey_number ?? (node.position ? node.position.slice(0, 2) : "P")}
+                    </text>
+                    <rect
+                      x={nx - 45}
+                      y={ny + r + 3}
+                      width="90"
+                      height="18"
+                      rx="4"
+                      fill="rgba(15, 23, 42, 0.85)"
+                      stroke="#0284c7"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={nx}
+                      y={ny + r + 16}
+                      fill="#e0f2fe"
+                      fontSize="11"
+                      fontWeight="semibold"
+                      textAnchor="middle"
+                    >
+                      {node.player_name.split(" ").pop()} ({node.pass_count ?? 0}회)
+                    </text>
+                  </g>
+                );
+              })}
           </g>
         )}
 
@@ -853,16 +963,27 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                         x2={lx}
                         y2={pitchY2}
                         stroke="#60a5fa"
-                        strokeWidth="2"
+                        strokeWidth="2.5"
                         strokeDasharray="6 4"
-                        style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
+                        style={{ transition: "all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+                      />
+                      <rect
+                        x={lx + 6}
+                        y={pitchY + 12}
+                        width="140"
+                        height="26"
+                        rx="6"
+                        fill="rgba(15, 23, 42, 0.9)"
+                        stroke="#60a5fa"
+                        strokeWidth="1.5"
                       />
                       <text
-                        x={lx + 6}
-                        y={pitchY + 20}
+                        x={lx + 76}
+                        y={pitchY + 29}
                         fill="#93c5fd"
-                        fontSize="11"
+                        fontSize="13"
                         fontWeight="bold"
+                        textAnchor="middle"
                       >
                         수비 라인: {phaseShape.line_height.toFixed(1)}m
                       </text>
@@ -875,43 +996,53 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             {/* 11명 선수 토큰 (위치 모핑 애니메이션) */}
             {activeFormationPlayers.map((fp) => {
               const [sx, sy] = toSvg(fp.x, fp.y);
+              const phaseColor =
+                selectedPhase === "defensive"
+                  ? "#2563eb"
+                  : selectedPhase === "attacking"
+                  ? "#dc2626"
+                  : "#059669";
               return (
                 <g
                   key={`formation-player-${fp.player_id}`}
                   style={{
                     transform: `translate(${sx}px, ${sy}px)`,
-                    transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                    transformBox: "fill-box",
+                    transition: "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   }}
                 >
                   <circle
-                    r="15"
-                    fill={
-                      selectedPhase === "defensive"
-                        ? "#2563eb"
-                        : selectedPhase === "attacking"
-                        ? "#dc2626"
-                        : "#059669"
-                    }
+                    r="18"
+                    fill={phaseColor}
                     stroke="#ffffff"
-                    strokeWidth="2.5"
-                    className="drop-shadow-lg"
+                    strokeWidth="3"
+                    className="drop-shadow-xl"
                   />
                   <text
-                    y="4"
+                    y="5"
                     fill="#ffffff"
-                    fontSize="11"
+                    fontSize="13"
                     fontWeight="bold"
                     textAnchor="middle"
                   >
                     {fp.jersey_number ?? fp.position?.slice(0, 2) ?? "P"}
                   </text>
+                  <rect
+                    x="-45"
+                    y="22"
+                    width="90"
+                    height="20"
+                    rx="5"
+                    fill="rgba(15, 23, 42, 0.9)"
+                    stroke={phaseColor}
+                    strokeWidth="1"
+                  />
                   <text
-                    y="27"
+                    y="36"
                     fill="#ffffff"
-                    fontSize="10"
+                    fontSize="12"
                     fontWeight="semibold"
                     textAnchor="middle"
-                    className="drop-shadow"
                   >
                     {fp.player_name.split(" ").pop()}
                   </text>
