@@ -5,6 +5,7 @@ import {
   PlaybookPattern,
   TacticalPhase,
   TacticalTab,
+  TimelineSlice,
 } from "../types";
 import { TacticalBoard } from "./TacticalBoard";
 import { StatCard } from "./StatCard";
@@ -39,8 +40,25 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const [activeTab, setActiveTab] = useState<TacticalTab>("formation");
   const [selectedPlaybookPattern, setSelectedPlaybookPattern] =
     useState<PlaybookPattern | null>(null);
+  const [selectedTimelineSlice, setSelectedTimelineSlice] =
+    useState<TimelineSlice | null>(null);
 
   const currentTeam = summary.teams[String(selectedTeamId)] || Object.values(summary.teams)[0];
+
+  // 팀 변경 시 플레이북 및 타임라인 슬라이스 자동 리셋/동기화
+  React.useEffect(() => {
+    if (currentTeam?.playbook && currentTeam.playbook.length > 0) {
+      setSelectedPlaybookPattern(currentTeam.playbook[0]);
+    } else {
+      setSelectedPlaybookPattern(null);
+    }
+
+    if (currentTeam?.timeline && currentTeam.timeline.length > 0) {
+      setSelectedTimelineSlice(currentTeam.timeline[0]);
+    } else {
+      setSelectedTimelineSlice(null);
+    }
+  }, [selectedTeamId, currentTeam]);
 
   if (!currentTeam) {
     return (
@@ -325,6 +343,8 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
             ppdaValue={pressure?.ppda}
             showTransitions={activeTab === "transitions"}
             transitionSequences={transitions?.transition_sequences}
+            showTimeline={activeTab === "timeline"}
+            timelineSlice={selectedTimelineSlice}
           />
           <div className="text-center text-xs text-slate-500">
             * 피치 좌표계: 0 → 120 (좌측 골대 → 우측 공격 방향) | D3 SVG 모핑 트랜지션 적용
@@ -510,21 +530,54 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
               />
 
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                {timeline?.map((sl) => (
-                  <div key={sl.slice_index} className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-white text-xs">{sl.label}</span>
-                      <span className="text-xs font-mono text-emerald-400 font-bold">
-                        점유율 {sl.possession_pct.toFixed(1)}%
-                      </span>
+                {timeline?.map((sl) => {
+                  const isSelected = selectedTimelineSlice?.slice_index === sl.slice_index;
+                  return (
+                    <div
+                      key={sl.slice_index}
+                      onClick={() => setSelectedTimelineSlice(sl)}
+                      className={`p-3 rounded-xl cursor-pointer transition-all border ${
+                        isSelected
+                          ? "bg-slate-800/90 border-blue-500 ring-1 ring-blue-500/50 shadow-md"
+                          : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              isSelected ? "bg-blue-400 animate-pulse" : "bg-slate-600"
+                            }`}
+                          />
+                          {sl.label}
+                        </span>
+                        <span className="text-xs font-mono text-emerald-400 font-bold">
+                          점유율 {sl.possession_pct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-400">
+                        <div>
+                          수비 라인:{" "}
+                          <span className="text-slate-200 font-mono font-semibold">
+                            {sl.defensive_line_height.toFixed(1)}m
+                          </span>
+                        </div>
+                        <div>
+                          패스 성공률:{" "}
+                          <span className="text-slate-200 font-mono font-semibold">
+                            {sl.pass_accuracy.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div>
+                          압박:{" "}
+                          <span className="text-slate-200 font-mono font-semibold">
+                            {sl.pressures}회
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-400">
-                      <div>수비 라인: <span className="text-slate-200 font-mono">{sl.defensive_line_height.toFixed(1)}m</span></div>
-                      <div>패스 성공률: <span className="text-slate-200 font-mono">{sl.pass_accuracy.toFixed(1)}%</span></div>
-                      <div>압박: <span className="text-slate-200 font-mono">{sl.pressures}회</span></div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -632,11 +685,32 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                   badgeColor="emerald"
                 />
                 <StatCard
-                  title="빠른 공격 전환 (8초 이내)"
+                  title="고속 역습 전환"
                   value={`${transitions?.fast_transitions_to_att_third ?? transitions?.fast_transitions ?? 0}회`}
-                  subtitle="파이널 써드 도달 성공"
-                  badgeColor="amber"
+                  subtitle="8초 내 파이널 서드 진입"
+                  badge="Fast Counter"
+                  badgeColor="rose"
                 />
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-xs text-slate-300">
+                <div className="font-bold text-white flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-pink-400" />
+                  <span>공수 전환 속도 (Transitions) 분석 안내</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  볼을 빼앗은(Turnover Won) 순간부터 슈팅이나 파이널 서드 박스 진입까지 전개된 속도와 경로를 추적합니다.
+                </p>
+                <div className="pt-2 border-t border-slate-800 space-y-1.5 font-mono text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                    <span className="text-pink-300 font-bold">핑크색 라인</span>: 전진 속도 5.0m/s 이상 고속 역습
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                    <span className="text-cyan-300 font-bold">청록색 라인</span>: 안정적인 템포의 지공 빌드업 전환
+                  </div>
+                </div>
               </div>
             </div>
           )}

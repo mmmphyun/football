@@ -145,7 +145,7 @@ export function interpolateFrames(
 
   for (const p1 of f1Anonymous) {
     let bestIdx = -1;
-    let minDist = 35.0; // 35m 이내 가장 가까운 동일 팀 선수와 매칭
+    let minDist = 15.0; // 15m 이내 가장 가까운 동일 팀/키퍼 선수와 매칭 (대각선 텔레포트 방지)
 
     for (let j = 0; j < f2Anonymous.length; j++) {
       if (usedF2AnonIdx.has(j)) continue;

@@ -68,7 +68,9 @@ def analyze_match(
 
     for t_id in team_ids:
         team_name = lineup_maps.get(t_id, {}).get("team_name", str(t_id))
-        formation_data = compute_formation_summary(events, lineups, t_id)
+        formation_data = compute_formation_summary(
+            events, lineups, t_id, three_sixty_frames=three_sixty_frames
+        )
         zones_data = compute_zones_summary(events, t_id, three_sixty_frames)
         passes_data = compute_pass_network(events, lineups, t_id)
         pressure_data = compute_pressure_summary(events, t_id)
