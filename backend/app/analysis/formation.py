@@ -275,35 +275,35 @@ def compute_formation_summary(
                 else:
                     dx, dy_scale = 16.0, 1.10
             elif phase_type == "high_press":
-                # 전방 압박: 최전방부터 압박 라인을 올리고 대인 압박 대형 형성
+                # 전방 압박: 최전방부터 압박 라인을 올리고 대인 압박 대형 형성 (수비 라인 50m+)
                 if is_gk:
-                    dx, dy_scale = 6.0, 1.0
+                    dx, dy_scale = 8.0, 1.0
                 elif is_def:
-                    dx, dy_scale = 10.0, 0.90
+                    dx, dy_scale = 14.0, 0.90
                 elif is_mid:
-                    dx, dy_scale = 14.0, 0.85
+                    dx, dy_scale = 18.0, 0.85
                 else:
-                    dx, dy_scale = 16.0, 0.85
+                    dx, dy_scale = 20.0, 0.85
             elif phase_type == "mid_block" or phase_type == "defensive":
-                # 미들 블록: 중원 콤팩트 두 줄 수비 (4-4-2 / 5-3-2)
+                # 미들 블록: 중원 콤팩트 두 줄 수비 (4-4-2 / 5-3-2) (수비 라인 35~40m)
                 if is_gk:
-                    dx, dy_scale = -2.0, 1.0
+                    dx, dy_scale = 0.0, 1.0
                 elif is_def:
-                    dx, dy_scale = -5.0, 0.80
+                    dx, dy_scale = -4.0, 0.80
                 elif is_mid:
-                    dx, dy_scale = -8.0, 0.80
+                    dx, dy_scale = -7.0, 0.80
                 else:
                     dx, dy_scale = -10.0, 0.80
             elif phase_type == "low_block":
-                # 로우 블록: 페널티 박스 보호 5-4-1 밀집 수비
+                # 로우 블록: 페널티 박스 보호 5-4-1 밀집 수비 (수비 라인 20~25m)
                 if is_gk:
                     dx, dy_scale = -3.0, 1.0
                 elif is_def:
-                    dx, dy_scale = -12.0, 0.75
+                    dx, dy_scale = -15.0, 0.70
                 elif is_mid:
-                    dx, dy_scale = -16.0, 0.75
+                    dx, dy_scale = -20.0, 0.70
                 else:
-                    dx, dy_scale = -18.0, 0.75
+                    dx, dy_scale = -25.0, 0.70
             else:
                 dx, dy_scale = 0.0, 1.0
 
@@ -381,7 +381,17 @@ def compute_formation_summary(
         all_locations, phase_type="overall"
     )
 
-    starters = [p for p in overall_players if p["is_starter"]]
+    def _extract_eleven(p_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        starters = [p for p in p_list if p["is_starter"]]
+        if len(starters) == 11:
+            return starters
+        if len(starters) > 11:
+            return starters[:11]
+        # 선발이 11명 미만인 경우 나머지 선수로 11명 채움
+        others = [p for p in p_list if not p["is_starter"]]
+        return (starters + others)[:11]
+
+    starters = _extract_eleven(overall_players)
     substitutes = [p for p in overall_players if not p["is_starter"] and p["event_count"] > 0]
     all_played = starters + substitutes
 
@@ -394,7 +404,7 @@ def compute_formation_summary(
             "line_height": bld_line,
             "width": bld_w,
             "length": bld_l,
-            "players": [p for p in bld_players if p["is_starter"]] or bld_players[:11],
+            "players": _extract_eleven(bld_players),
             "all_players": bld_players,
         },
         "progression": {
@@ -405,7 +415,7 @@ def compute_formation_summary(
             "line_height": prg_line,
             "width": prg_w,
             "length": prg_l,
-            "players": [p for p in prg_players if p["is_starter"]] or prg_players[:11],
+            "players": _extract_eleven(prg_players),
             "all_players": prg_players,
         },
         "final_third": {
@@ -416,7 +426,7 @@ def compute_formation_summary(
             "line_height": fin_line,
             "width": fin_w,
             "length": fin_l,
-            "players": [p for p in fin_players if p["is_starter"]] or fin_players[:11],
+            "players": _extract_eleven(fin_players),
             "all_players": fin_players,
         },
         "high_press": {
@@ -427,7 +437,7 @@ def compute_formation_summary(
             "line_height": hp_line,
             "width": hp_w,
             "length": hp_l,
-            "players": [p for p in hp_players if p["is_starter"]] or hp_players[:11],
+            "players": _extract_eleven(hp_players),
             "all_players": hp_players,
         },
         "mid_block": {
@@ -438,7 +448,7 @@ def compute_formation_summary(
             "line_height": mb_line,
             "width": mb_w,
             "length": mb_l,
-            "players": [p for p in mb_players if p["is_starter"]] or mb_players[:11],
+            "players": _extract_eleven(mb_players),
             "all_players": mb_players,
         },
         "low_block": {
@@ -449,7 +459,7 @@ def compute_formation_summary(
             "line_height": lb_line,
             "width": lb_w,
             "length": lb_l,
-            "players": [p for p in lb_players if p["is_starter"]] or lb_players[:11],
+            "players": _extract_eleven(lb_players),
             "all_players": lb_players,
         },
     }
@@ -460,21 +470,21 @@ def compute_formation_summary(
         "formation_name": formation_name,
         "team_length": overall_l,
         "team_width": overall_w,
-        "team_center_x": round(
-            sum(p["x"] for p in (starters or overall_players)) / len(starters or overall_players), 2
-        ),
-        "team_center_y": round(
-            sum(p["y"] for p in (starters or overall_players)) / len(starters or overall_players), 2
-        ),
+        "team_center_x": round(sum(p["x"] for p in starters) / len(starters), 2)
+        if starters
+        else 60.0,
+        "team_center_y": round(sum(p["y"] for p in starters) / len(starters), 2)
+        if starters
+        else 40.0,
         "subphases": subphases_data,
         "defensive": subphases_data["mid_block"],
         "buildup": subphases_data["buildup"],
         "attacking": subphases_data["final_third"],
-        "players": starters if starters else overall_players,
+        "players": starters,
         "starters": starters,
         "substitutes": substitutes,
         "all_played_players": all_played,
-        "players_overall": overall_players,
-        "players_in_possession": prg_players,
-        "players_out_of_possession": mb_players,
+        "players_overall": starters,
+        "players_in_possession": _extract_eleven(prg_players),
+        "players_out_of_possession": _extract_eleven(mb_players),
     }
