@@ -1,14 +1,19 @@
 """포메이션 및 선수별 평균 위치 분석 모듈.
 
-볼 소유(In-Possession) 및 미소유(Out-of-Possession) 상태에서 선수별 평균 위치,
-포메이션 앵커 좌표 및 팀 전술 컴팩트니스 지표를 산출합니다.
+UEFA 코칭 라이선스 표준의 6대 서브 국면(후방 빌드업/중원 전개/기회 창출/전방 압박/미들 블록/로우 블록)에서
+선수별 평균 위치, 포메이션 앵커 좌표 및 팀 전술 컴팩트니스/라인높이 지표를 산출합니다.
 """
 
 from collections import defaultdict
 from typing import Any
 
 from app.analysis.common import build_lineup_maps
-from app.config import HALF_PITCH_X
+from app.config import (
+    SUBPHASE_BUILDUP_MAX_X,
+    SUBPHASE_HIGH_PRESS_MIN_X,
+    SUBPHASE_MID_BLOCK_MIN_X,
+    SUBPHASE_PROGRESSION_MAX_X,
+)
 
 # StatsBomb 포지션 ID 기준 기본 앵커 좌표 (x: 0~120, y: 0~80)
 POSITION_ANCHORS: dict[int, tuple[float, float]] = {
@@ -85,7 +90,7 @@ def compute_formation_summary(
     team_id: int,
     three_sixty_frames: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """팀의 3대 국면(수비/빌드업/공격)별 대형, 선수 평균 위치 및 컴팩트니스 지표를 산출합니다."""
+    """팀의 UEFA 6대 서브 국면 및 기본 국면별 대형, 선수 평균 위치, 컴팩트니스 지표를 산출합니다."""
     lineup_maps = build_lineup_maps(lineups)
     team_meta = lineup_maps.get(team_id, {"players": {}, "starting_xi": []})
     players_meta = team_meta.get("players", {})
@@ -104,14 +109,31 @@ def compute_formation_summary(
                 formation_name = str(formation_num)
             break
 
-    # 3대 국면별 위치 데이터 수집 버킷
-    defensive_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
-    buildup_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
-    attacking_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    # 6대 서브 국면별 위치 수집 버킷
+    # 1. 볼 소유 국면 (In-Possession)
+    buildup_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    progression_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    final_third_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
+
+    # 2. 볼 미소유 국면 (Out-of-Possession)
+    high_press_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    mid_block_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    low_block_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
+
     all_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
 
-    # 이벤트별 국면 매핑 맵
-    ev_phase_map: dict[str, str] = {}
+    defensive_action_types = {
+        "Pressure",
+        "Tackle",
+        "Interception",
+        "Block",
+        "Clearance",
+        "Duel",
+        "Foul Committed",
+    }
+
+    # 이벤트별 6대 서브 국면 매핑
+    ev_subphase_map: dict[str, str] = {}
     for ev in events:
         ev_id = ev.get("id", "")
         poss_team_id = ev.get("possession_team", {}).get("id")
@@ -119,26 +141,26 @@ def compute_formation_summary(
         loc = ev.get("location")
         x = float(loc[0]) if loc and len(loc) >= 1 else 60.0
 
-        if poss_team_id != team_id or type_name in {
-            "Pressure",
-            "Tackle",
-            "Interception",
-            "Block",
-            "Clearance",
-            "Duel",
-            "Foul Committed",
-        }:
-            ev_phase_map[ev_id] = "defensive"
-        elif x < HALF_PITCH_X:
-            ev_phase_map[ev_id] = "buildup"
+        if poss_team_id != team_id or type_name in defensive_action_types:
+            if x >= SUBPHASE_HIGH_PRESS_MIN_X:
+                ev_subphase_map[ev_id] = "high_press"
+            elif x >= SUBPHASE_MID_BLOCK_MIN_X:
+                ev_subphase_map[ev_id] = "mid_block"
+            else:
+                ev_subphase_map[ev_id] = "low_block"
         else:
-            ev_phase_map[ev_id] = "attacking"
+            if x < SUBPHASE_BUILDUP_MAX_X:
+                ev_subphase_map[ev_id] = "buildup"
+            elif x < SUBPHASE_PROGRESSION_MAX_X:
+                ev_subphase_map[ev_id] = "progression"
+            else:
+                ev_subphase_map[ev_id] = "final_third"
 
     # 1. 360 프레임 데이터가 있는 경우 실측 위치 집계
     if three_sixty_frames:
         for f360 in three_sixty_frames:
             ev_uuid = f360.get("event_uuid")
-            phase = ev_phase_map.get(ev_uuid, "buildup")
+            subphase = ev_subphase_map.get(ev_uuid, "progression")
             freeze_players = f360.get("freeze_frame", [])
 
             for fp in freeze_players:
@@ -150,20 +172,24 @@ def compute_formation_summary(
                 fx, fy = float(loc[0]), float(loc[1])
                 is_actor = fp.get("actor", False)
 
-                # actor인 경우 이벤트 주체 선수 ID로 기록
                 if is_actor:
-                    # 이벤트 주체 선수 탐색
                     for ev in events:
                         if ev.get("id") == ev_uuid:
                             p_id = ev.get("player", {}).get("id")
                             if p_id and p_id in players_meta:
                                 all_locations[p_id].append((fx, fy))
-                                if phase == "defensive":
-                                    defensive_locations[p_id].append((fx, fy))
-                                elif phase == "buildup":
-                                    buildup_locations[p_id].append((fx, fy))
-                                else:
-                                    attacking_locations[p_id].append((fx, fy))
+                                if subphase == "buildup":
+                                    buildup_locs[p_id].append((fx, fy))
+                                elif subphase == "progression":
+                                    progression_locs[p_id].append((fx, fy))
+                                elif subphase == "final_third":
+                                    final_third_locs[p_id].append((fx, fy))
+                                elif subphase == "high_press":
+                                    high_press_locs[p_id].append((fx, fy))
+                                elif subphase == "mid_block":
+                                    mid_block_locs[p_id].append((fx, fy))
+                                elif subphase == "low_block":
+                                    low_block_locs[p_id].append((fx, fy))
                             break
 
     # 2. 일반 이벤트 데이터 집계
@@ -186,27 +212,26 @@ def compute_formation_summary(
         poss_team_id = ev.get("possession_team", {}).get("id")
         type_name = ev.get("type", {}).get("name", "")
 
-        if poss_team_id != team_id or type_name in {
-            "Pressure",
-            "Tackle",
-            "Interception",
-            "Block",
-            "Clearance",
-            "Duel",
-            "Foul Committed",
-        }:
-            defensive_locations[p_id].append((x, y))
-        else:
-            if x < HALF_PITCH_X:
-                buildup_locations[p_id].append((x, y))
+        if poss_team_id != team_id or type_name in defensive_action_types:
+            if x >= SUBPHASE_HIGH_PRESS_MIN_X:
+                high_press_locs[p_id].append((x, y))
+            elif x >= SUBPHASE_MID_BLOCK_MIN_X:
+                mid_block_locs[p_id].append((x, y))
             else:
-                attacking_locations[p_id].append((x, y))
+                low_block_locs[p_id].append((x, y))
+        else:
+            if x < SUBPHASE_BUILDUP_MAX_X:
+                buildup_locs[p_id].append((x, y))
+            elif x < SUBPHASE_PROGRESSION_MAX_X:
+                progression_locs[p_id].append((x, y))
+            else:
+                final_third_locs[p_id].append((x, y))
 
     def _calc_player_metrics(
         loc_map: dict[int, list[tuple[float, float]]],
         phase_type: str = "overall",
     ) -> tuple[list[dict[str, Any]], float, float, float]:
-        """선수별 평균 좌표, 라인 높이, 너비, 길이를 국면별 특성을 반영하여 산출합니다."""
+        """선수별 평균 좌표, 라인 높이, 너비, 길이를 6대 서브 국면별 특성을 반영하여 산출합니다."""
         result: list[dict[str, Any]] = []
         for p_id, p_info in players_meta.items():
             locs = loc_map.get(p_id, [])
@@ -215,58 +240,84 @@ def compute_formation_summary(
             pos_id = p_info.get("primary_position_id")
             anchor = get_position_anchor(pos_id)
 
-            # 포지션 역할군별 국면 변형 오프셋
             is_def = pos_id in DEFENDER_POSITION_IDS
             is_mid = pos_id in MIDFIELDER_POSITION_IDS
             is_gk = pos_id == 1
 
-            if phase_type == "defensive":
-                # 수비 국면: 전체적으로 뒤로 물러서고 중앙으로 좁힘 (두 줄 수비 / 콤팩트 블록)
+            if phase_type == "buildup":
+                # 후방 빌드업: 센터백 벌림, 풀백 전진, 안정적 후방 볼 순환
                 if is_gk:
-                    dx, dy_scale = -2.0, 1.0
+                    dx, dy_scale = 2.0, 1.0
                 elif is_def:
-                    dx, dy_scale = -8.0, 0.85
-                elif is_mid:
-                    dx, dy_scale = -14.0, 0.80
-                else:
-                    dx, dy_scale = -18.0, 0.85
-            elif phase_type == "buildup":
-                # 빌드업 국면: 좌우 폭을 넓히고 센터백 벌림, 풀백 전진 (안정적 볼 순환 구조)
-                if is_gk:
-                    dx, dy_scale = 3.0, 1.0
-                elif is_def:
-                    dx, dy_scale = 4.0, 1.15
+                    dx, dy_scale = 3.0, 1.20
                 elif is_mid:
                     dx, dy_scale = 2.0, 1.05
                 else:
-                    dx, dy_scale = 0.0, 1.0
-            elif phase_type == "attacking":
-                # 공격 국면: 전방으로 강하게 압축 전진, 풀백/윙어 높은 위치 (2-3-5 / 3-2-5)
+                    dx, dy_scale = -4.0, 1.0
+            elif phase_type == "progression":
+                # 중원 전개: 3-2-4-1 대형, 풀백 인버티드 전진, 메짤라 하프스페이스 위치
                 if is_gk:
-                    dx, dy_scale = 10.0, 1.0
+                    dx, dy_scale = 5.0, 1.0
                 elif is_def:
-                    dx, dy_scale = 18.0, 1.10
+                    dx, dy_scale = 8.0, 1.10
                 elif is_mid:
-                    dx, dy_scale = 16.0, 1.05
+                    dx, dy_scale = 10.0, 1.05
                 else:
-                    dx, dy_scale = 12.0, 1.0
+                    dx, dy_scale = 8.0, 1.0
+            elif phase_type == "final_third" or phase_type == "attacking":
+                # 기회 창출 / 공격: 2-3-5 박스 타격, 최후방 잔류 수비 (Rest Defense)
+                if is_gk:
+                    dx, dy_scale = 8.0, 1.0
+                elif is_def:
+                    dx, dy_scale = 16.0, 1.15
+                elif is_mid:
+                    dx, dy_scale = 20.0, 1.15
+                else:
+                    dx, dy_scale = 16.0, 1.10
+            elif phase_type == "high_press":
+                # 전방 압박: 최전방부터 압박 라인을 올리고 대인 압박 대형 형성
+                if is_gk:
+                    dx, dy_scale = 6.0, 1.0
+                elif is_def:
+                    dx, dy_scale = 10.0, 0.90
+                elif is_mid:
+                    dx, dy_scale = 14.0, 0.85
+                else:
+                    dx, dy_scale = 16.0, 0.85
+            elif phase_type == "mid_block" or phase_type == "defensive":
+                # 미들 블록: 중원 콤팩트 두 줄 수비 (4-4-2 / 5-3-2)
+                if is_gk:
+                    dx, dy_scale = -2.0, 1.0
+                elif is_def:
+                    dx, dy_scale = -5.0, 0.80
+                elif is_mid:
+                    dx, dy_scale = -8.0, 0.80
+                else:
+                    dx, dy_scale = -10.0, 0.80
+            elif phase_type == "low_block":
+                # 로우 블록: 페널티 박스 보호 5-4-1 밀집 수비
+                if is_gk:
+                    dx, dy_scale = -3.0, 1.0
+                elif is_def:
+                    dx, dy_scale = -12.0, 0.75
+                elif is_mid:
+                    dx, dy_scale = -16.0, 0.75
+                else:
+                    dx, dy_scale = -18.0, 0.75
             else:
                 dx, dy_scale = 0.0, 1.0
 
             if count >= 3:
-                # 실제 데이터 충분한 경우: 실제 평균 70% + 전술 오프셋 30% 블렌딩
                 raw_avg_x = sum(pt[0] for pt in locs) / count
                 raw_avg_y = sum(pt[1] for pt in locs) / count
                 avg_x = 0.7 * raw_avg_x + 0.3 * (anchor[0] + dx)
                 avg_y = 0.7 * raw_avg_y + 0.3 * (40.0 + (anchor[1] - 40.0) * dy_scale)
             elif len(overall_locs) >= 3:
-                # 국면 데이터 부족 시 전체 평균 위치에 국면 전술 오프셋 가산
                 base_x = sum(pt[0] for pt in overall_locs) / len(overall_locs)
                 base_y = sum(pt[1] for pt in overall_locs) / len(overall_locs)
                 avg_x = base_x + dx
                 avg_y = 40.0 + (base_y - 40.0) * dy_scale
             else:
-                # 데이터 없는 경우 포지션 앵커 기반 산출
                 avg_x = anchor[0] + dx
                 avg_y = 40.0 + (anchor[1] - 40.0) * dy_scale
 
@@ -290,7 +341,6 @@ def compute_formation_summary(
                 }
             )
 
-        # 필드 플레이어(GK 제외) 선발 선수들 위치 기준 지표 산출
         field_starters = [p for p in result if p["is_starter"] and p.get("position_id") != 1]
         if not field_starters:
             field_starters = [p for p in result if p.get("position_id") != 1][:10]
@@ -314,16 +364,17 @@ def compute_formation_summary(
 
         return result, line_height, width, length
 
-    # 3대 국면 계산
-    def_players, def_line, def_w, def_l = _calc_player_metrics(
-        defensive_locations, phase_type="defensive"
+    # 6대 서브 국면 지표 산출
+    bld_players, bld_line, bld_w, bld_l = _calc_player_metrics(buildup_locs, phase_type="buildup")
+    prg_players, prg_line, prg_w, prg_l = _calc_player_metrics(
+        progression_locs, phase_type="progression"
     )
-    bld_players, bld_line, bld_w, bld_l = _calc_player_metrics(
-        buildup_locations, phase_type="buildup"
+    fin_players, fin_line, fin_w, fin_l = _calc_player_metrics(
+        final_third_locs, phase_type="final_third"
     )
-    att_players, att_line, att_w, att_l = _calc_player_metrics(
-        attacking_locations, phase_type="attacking"
-    )
+    hp_players, hp_line, hp_w, hp_l = _calc_player_metrics(high_press_locs, phase_type="high_press")
+    mb_players, mb_line, mb_w, mb_l = _calc_player_metrics(mid_block_locs, phase_type="mid_block")
+    lb_players, lb_line, lb_w, lb_l = _calc_player_metrics(low_block_locs, phase_type="low_block")
 
     # 전반적 지표 계산
     overall_players, overall_line, overall_w, overall_l = _calc_player_metrics(
@@ -334,9 +385,74 @@ def compute_formation_summary(
     substitutes = [p for p in overall_players if not p["is_starter"] and p["event_count"] > 0]
     all_played = starters + substitutes
 
-    def_shape = _infer_shape_string(def_players)
-    bld_shape = _infer_shape_string(bld_players)
-    att_shape = _infer_shape_string(att_players)
+    subphases_data = {
+        "buildup": {
+            "name": "후방 빌드업",
+            "name_en": "Build-up",
+            "category": "in_possession",
+            "formation": _infer_shape_string(bld_players),
+            "line_height": bld_line,
+            "width": bld_w,
+            "length": bld_l,
+            "players": [p for p in bld_players if p["is_starter"]] or bld_players[:11],
+            "all_players": bld_players,
+        },
+        "progression": {
+            "name": "중원 전개",
+            "name_en": "Progression",
+            "category": "in_possession",
+            "formation": _infer_shape_string(prg_players),
+            "line_height": prg_line,
+            "width": prg_w,
+            "length": prg_l,
+            "players": [p for p in prg_players if p["is_starter"]] or prg_players[:11],
+            "all_players": prg_players,
+        },
+        "final_third": {
+            "name": "기회 창출",
+            "name_en": "Final Third",
+            "category": "in_possession",
+            "formation": _infer_shape_string(fin_players),
+            "line_height": fin_line,
+            "width": fin_w,
+            "length": fin_l,
+            "players": [p for p in fin_players if p["is_starter"]] or fin_players[:11],
+            "all_players": fin_players,
+        },
+        "high_press": {
+            "name": "전방 압박",
+            "name_en": "High Press",
+            "category": "out_of_possession",
+            "formation": _infer_shape_string(hp_players),
+            "line_height": hp_line,
+            "width": hp_w,
+            "length": hp_l,
+            "players": [p for p in hp_players if p["is_starter"]] or hp_players[:11],
+            "all_players": hp_players,
+        },
+        "mid_block": {
+            "name": "미들 블록",
+            "name_en": "Mid-Block",
+            "category": "out_of_possession",
+            "formation": _infer_shape_string(mb_players),
+            "line_height": mb_line,
+            "width": mb_w,
+            "length": mb_l,
+            "players": [p for p in mb_players if p["is_starter"]] or mb_players[:11],
+            "all_players": mb_players,
+        },
+        "low_block": {
+            "name": "로우 블록",
+            "name_en": "Low-Block",
+            "category": "out_of_possession",
+            "formation": _infer_shape_string(lb_players),
+            "line_height": lb_line,
+            "width": lb_w,
+            "length": lb_l,
+            "players": [p for p in lb_players if p["is_starter"]] or lb_players[:11],
+            "all_players": lb_players,
+        },
+    }
 
     return {
         "team_id": team_id,
@@ -350,35 +466,16 @@ def compute_formation_summary(
         "team_center_y": round(
             sum(p["y"] for p in (starters or overall_players)) / len(starters or overall_players), 2
         ),
-        "defensive": {
-            "formation": def_shape,
-            "line_height": def_line,
-            "width": def_w,
-            "length": def_l,
-            "players": [p for p in def_players if p["is_starter"]] or def_players[:11],
-            "all_players": def_players,
-        },
-        "buildup": {
-            "formation": bld_shape,
-            "line_height": bld_line,
-            "width": bld_w,
-            "length": bld_l,
-            "players": [p for p in bld_players if p["is_starter"]] or bld_players[:11],
-            "all_players": bld_players,
-        },
-        "attacking": {
-            "formation": att_shape,
-            "line_height": att_line,
-            "width": att_w,
-            "length": att_l,
-            "players": [p for p in att_players if p["is_starter"]] or att_players[:11],
-            "all_players": att_players,
-        },
+        "subphases": subphases_data,
+        "defensive": subphases_data["mid_block"],
+        "buildup": subphases_data["buildup"],
+        "attacking": subphases_data["final_third"],
         "players": starters if starters else overall_players,
         "starters": starters,
         "substitutes": substitutes,
         "all_played_players": all_played,
         "players_overall": overall_players,
-        "players_in_possession": bld_players,
-        "players_out_of_possession": def_players,
+        "players_in_possession": prg_players,
+        "players_out_of_possession": mb_players,
     }
+
