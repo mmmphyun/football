@@ -147,6 +147,7 @@ def handle_process(args: argparse.Namespace) -> None:
                 total_failed += stats["failed"]
         else:
             from app.storage import get_db
+
             with get_db(args.db_path) as conn:
                 rows = conn.execute("SELECT match_id FROM matches").fetchall()
                 match_ids = [r["match_id"] for r in rows]

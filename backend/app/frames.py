@@ -116,7 +116,11 @@ def _resolve_anchor(
     if formation_anchors and team_id and p_id and team_id in formation_anchors:
         t_anchors = formation_anchors[team_id]
         # 1. 3대 국면 딕셔너리 구조인 경우
-        if isinstance(t_anchors, dict) and phase in t_anchors and isinstance(t_anchors[phase], dict):
+        if (
+            isinstance(t_anchors, dict)
+            and phase in t_anchors
+            and isinstance(t_anchors[phase], dict)
+        ):
             if p_id in t_anchors[phase]:
                 return t_anchors[phase][p_id]
             if "overall" in t_anchors and p_id in t_anchors["overall"]:
@@ -201,11 +205,15 @@ def build_highlight_frames(
         ev_team_id = ev.get("team", {}).get("id") or hl_team_id
 
         # 하이라이트 주체 팀(hl_team_id) 기준 좌표계 통일 (상대팀 이벤트 시 180도 반전)
-        is_opp_event = (ev_team_id != hl_team_id)
+        is_opp_event = ev_team_id != hl_team_id
 
         if raw_ball_loc and len(raw_ball_loc) >= 2:
             bx, by = float(raw_ball_loc[0]), float(raw_ball_loc[1])
-            ball_loc = [round(120.0 - bx, 2), round(80.0 - by, 2)] if is_opp_event else [round(bx, 2), round(by, 2)]
+            ball_loc = (
+                [round(120.0 - bx, 2), round(80.0 - by, 2)]
+                if is_opp_event
+                else [round(bx, 2), round(by, 2)]
+            )
         else:
             ball_loc = [60.0, 40.0]
 
@@ -217,15 +225,19 @@ def build_highlight_frames(
         type_name = ev.get("type", {}).get("name", "")
         ball_x = ball_loc[0]
 
-        if poss_team_id != hl_team_id or (ev_team_id != hl_team_id and type_name in {
-            "Pressure",
-            "Tackle",
-            "Interception",
-            "Block",
-            "Clearance",
-            "Duel",
-            "Foul Committed",
-        }):
+        if poss_team_id != hl_team_id or (
+            ev_team_id != hl_team_id
+            and type_name
+            in {
+                "Pressure",
+                "Tackle",
+                "Interception",
+                "Block",
+                "Clearance",
+                "Duel",
+                "Foul Committed",
+            }
+        ):
             home_phase = "defensive"
             opp_phase = "attacking"
         elif ball_x < 60.0:
@@ -253,12 +265,16 @@ def build_highlight_frames(
             for fp in freeze_players:
                 floc = fp.get("location", [60.0, 40.0])
                 fx, fy = float(floc[0]), float(floc[1])
-                loc = [round(120.0 - fx, 2), round(80.0 - fy, 2)] if is_opp_event else [round(fx, 2), round(fy, 2)]
+                loc = (
+                    [round(120.0 - fx, 2), round(80.0 - fy, 2)]
+                    if is_opp_event
+                    else [round(fx, 2), round(fy, 2)]
+                )
 
                 is_actor = bool(fp.get("actor", False))
                 # 하이라이트 주체 팀 기준 teammate 여부 일관화
                 fp_is_teammate_raw = bool(fp.get("teammate", False))
-                is_teammate = (fp_is_teammate_raw if not is_opp_event else not fp_is_teammate_raw)
+                is_teammate = fp_is_teammate_raw if not is_opp_event else not fp_is_teammate_raw
                 is_keeper = bool(fp.get("keeper", False))
 
                 if is_teammate:
@@ -278,7 +294,11 @@ def build_highlight_frames(
                     p_meta = p_team_info.get("players", {}).get(actor_player_id, {})
                     pos_id = p_meta.get("primary_position_id")
                     anchor = _resolve_anchor(
-                        ev_team_id, actor_player_id, home_phase if is_teammate else opp_phase, pos_id, formation_anchors
+                        ev_team_id,
+                        actor_player_id,
+                        home_phase if is_teammate else opp_phase,
+                        pos_id,
+                        formation_anchors,
                     )
                     anchor_x, anchor_y = anchor[0], anchor[1]
 
@@ -313,9 +333,7 @@ def build_highlight_frames(
             for p_id in teammates_to_add:
                 p_meta = home_players_meta.get(p_id, {})
                 pos_id = p_meta.get("primary_position_id")
-                anchor = _resolve_anchor(
-                    hl_team_id, p_id, home_phase, pos_id, formation_anchors
-                )
+                anchor = _resolve_anchor(hl_team_id, p_id, home_phase, pos_id, formation_anchors)
 
                 raw_players.append(
                     {
@@ -373,7 +391,7 @@ def build_highlight_frames(
             if prev_actor_loc is not None and dt > 0.01:
                 vx, vy = calculate_velocity(prev_actor_loc, effective_loc, dt)
 
-            is_actor_teammate = (ev_team_id == hl_team_id)
+            is_actor_teammate = ev_team_id == hl_team_id
 
             raw_players.append(
                 {
@@ -398,9 +416,7 @@ def build_highlight_frames(
                     continue
                 p_meta = home_team_info.get("players", {}).get(p_id, {})
                 pos_id = p_meta.get("primary_position_id")
-                anchor = _resolve_anchor(
-                    hl_team_id, p_id, home_phase, pos_id, formation_anchors
-                )
+                anchor = _resolve_anchor(hl_team_id, p_id, home_phase, pos_id, formation_anchors)
                 raw_players.append(
                     {
                         "player_id": p_id,

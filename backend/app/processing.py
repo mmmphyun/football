@@ -33,7 +33,9 @@ def _extract_formation_anchors(
 
         for phase in ("defensive", "buildup", "attacking", "overall"):
             if phase in formation and isinstance(formation[phase], dict):
-                p_list = formation[phase].get("players") or formation[phase].get("all_players") or []
+                p_list = (
+                    formation[phase].get("players") or formation[phase].get("all_players") or []
+                )
             else:
                 p_list = formation.get("players") or formation.get("players_overall") or []
 

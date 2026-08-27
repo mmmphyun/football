@@ -218,7 +218,7 @@ def compute_formation_summary(
             # 포지션 역할군별 국면 변형 오프셋
             is_def = pos_id in DEFENDER_POSITION_IDS
             is_mid = pos_id in MIDFIELDER_POSITION_IDS
-            is_gk = (pos_id == 1)
+            is_gk = pos_id == 1
 
             if phase_type == "defensive":
                 # 수비 국면: 전체적으로 뒤로 물러서고 중앙으로 좁힘 (두 줄 수비 / 콤팩트 블록)
