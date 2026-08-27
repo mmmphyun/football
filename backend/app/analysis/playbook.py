@@ -524,4 +524,3 @@ def compute_playbook_summary(
     results.sort(key=lambda p: (p["occurrences"], p["total_xg"]), reverse=True)
 
     return results
-

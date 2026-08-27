@@ -478,4 +478,3 @@ def compute_formation_summary(
         "players_in_possession": prg_players,
         "players_out_of_possession": mb_players,
     }
-

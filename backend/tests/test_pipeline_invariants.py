@@ -24,7 +24,14 @@ def test_match_summary_invariants(
         assert "defensive" in form and "buildup" in form and "attacking" in form
         assert "subphases" in form
 
-        for sp_name in ("buildup", "progression", "final_third", "high_press", "mid_block", "low_block"):
+        for sp_name in (
+            "buildup",
+            "progression",
+            "final_third",
+            "high_press",
+            "mid_block",
+            "low_block",
+        ):
             sp_data = form["subphases"][sp_name]
             assert "line_height" in sp_data and 10.0 <= sp_data["line_height"] <= 90.0
             assert "width" in sp_data and sp_data["width"] > 0
