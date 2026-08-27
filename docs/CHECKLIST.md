@@ -14,11 +14,11 @@
 ---
 
 ## Phase 1. 기반 레이어 구축 (Config, Downloader, Storage)
-- [ ] 이슈: `gh issue create --title "[Phase 1] 기반 레이어 구축 (config, downloader, storage)" --label "phase:1-base,type:feat"`
-- [ ] 브랜치: `git checkout -b feat/#1-base-layer`
-- [ ] 구현: `config.py`, `downloader.py` (캐시/감지), `storage.py` (3대 국면 스키마)
-- [ ] 검증: `uv run ruff check backend/`
-- [ ] PR: `gh pr create --title "[Phase 1] 기반 레이어 구축" --body "Closes #1"`
+- [x] 이슈: `gh issue create --title "[Phase 1] 기반 레이어 구축 (config, downloader, storage)" --label "phase:1-base,type:feat"` (#38)
+- [x] 브랜치: `git checkout -b feat/#38-base-layer`
+- [x] 구현: `config.py`, `downloader.py` (캐시/감지), `storage.py` (3대 국면 스키마)
+- [x] 검증: `uv run ruff check backend/` && `uv run pytest backend/`
+- [x] PR: `gh pr create --title "[Phase 1] 기반 레이어 구축" --body "Closes #38"` (PR #39 Merged)
 
 ---
 
