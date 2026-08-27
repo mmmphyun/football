@@ -13,6 +13,58 @@ HALF_PITCH_X: float = 60.0  # 빌드업(x < 60.0)과 공격(x >= 60.0) 국면 �
 MIDDLE_THIRD_X: float = 80.0
 ATTACKING_THIRD_X: float = 120.0
 
+# UEFA 6대 서브 국면 X축 경계값 (단위: 미터)
+# 1. 볼 소유 국면 (In-Possession)
+SUBPHASE_BUILDUP_MAX_X: float = 40.0  # 후방 빌드업 (x < 40.0)
+SUBPHASE_PROGRESSION_MIN_X: float = 40.0  # 중원 전개 (40.0 <= x < 75.0)
+SUBPHASE_PROGRESSION_MAX_X: float = 75.0
+SUBPHASE_FINAL_THIRD_MIN_X: float = 75.0  # 기회 창출 / 파이널서드 (x >= 75.0)
+
+# 2. 볼 미소유 국면 (Out-of-Possession / 수비 블록)
+SUBPHASE_HIGH_PRESS_MIN_X: float = 65.0  # 전방 압박 블록 (수비 액션 x >= 65.0)
+SUBPHASE_MID_BLOCK_MIN_X: float = 40.0  # 미들 블록 (수비 액션 40.0 <= x < 65.0)
+SUBPHASE_MID_BLOCK_MAX_X: float = 65.0
+SUBPHASE_LOW_BLOCK_MAX_X: float = 40.0  # 로우 블록 (수비 액션 x < 40.0)
+
+# 페널티 박스 영역 좌표
+BOX_X_MIN: float = 102.0
+BOX_Y_MIN: float = 18.0
+BOX_Y_MAX: float = 62.0
+
+# 5대 시그니처 전술 플레이북 추출 기준 상수
+# 1) 측면 과부하 & 컷백
+CUTBACK_FLANK_X_MIN: float = 88.0
+CUTBACK_FLANK_Y_TOP: float = 22.0
+CUTBACK_FLANK_Y_BOTTOM: float = 58.0
+CUTBACK_TARGET_X_MIN: float = 85.0
+CUTBACK_TARGET_Y_MIN: float = 28.0
+CUTBACK_TARGET_Y_MAX: float = 52.0
+
+# 2) 포켓(Zone 14) 3자 연계 침투
+POCKET_X_MIN: float = 75.0
+POCKET_X_MAX: float = 95.0
+POCKET_Y_MIN: float = 28.0
+POCKET_Y_MAX: float = 52.0
+THIRD_MAN_MAX_INTERVAL_SEC: float = 2.0
+
+# 3) 하프스페이스 언더래핑 & 얼리크로스
+HALFSPACE_X_MIN: float = 65.0
+HALFSPACE_X_MAX: float = 88.0
+HALFSPACE_Y_LEFT_MIN: float = 18.0
+HALFSPACE_Y_LEFT_MAX: float = 30.0
+HALFSPACE_Y_RIGHT_MIN: float = 50.0
+HALFSPACE_Y_RIGHT_MAX: float = 62.0
+
+# 4) 후방 딥 라인브레이킹 종패스
+DEEP_LINEBREAK_START_MAX_X: float = 55.0
+DEEP_LINEBREAK_END_MIN_X: float = 80.0
+DEEP_LINEBREAK_MIN_DX: float = 30.0
+
+# 5) 전방 압박 탈취 즉시 속공 슛
+HIGHTURNOVER_RECOVERY_MIN_X: float = 75.0
+HIGHTURNOVER_MAX_TIME_SEC: float = 5.0
+HIGHTURNOVER_MAX_TOUCHES: int = 3
+
 # 360 패스길 레이캐스팅 및 전술 판정 상수
 PASS_LANE_BLOCK_RADIUS: float = 2.5  # 상대 수비수에 의한 패스길 차단 판정 반경 (미터)
 PPDA_OPPONENT_HALF_X: float = 40.0  # PPDA 계산 시 상대 진영 수비 액션 X축 기준선 (x >= 40.0)
