@@ -62,13 +62,13 @@
   - `MatchView.tsx` (국면 전환 바 + 플레이북 카드 + 압박 트랩)
   - `HighlightView.tsx` (하이라이트 플레이어)
 - [x] 검증: `cd frontend; npm run test; npm run build`
-- [ ] PR: `gh pr create --title "[Phase 5] 프론트엔드 동적 바둑판 구축" --body "Closes #47"`
+- [x] PR: `gh pr create --title "[Phase 5] 프론트엔드 동적 바둑판 구축" --body "Closes #47"` (PR #48 Merged)
 
 ---
 
 ## Phase 6. 종합 통합 검증 및 E2E 테스트
-- [ ] 이슈: `gh issue create --title "[Phase 6] 종합 통합 검증 및 E2E 테스트" --label "phase:6-deploy,type:chore"`
-- [ ] 브랜치: `git checkout -b feat/#6-integration-and-deploy`
-- [ ] 실행: `uv run python -m app.cli fetch && uv run python -m app.cli process --force`
-- [ ] 검증: Docker Compose 및 UI 동작 검증
-- [ ] PR: `gh pr create --title "[Phase 6] 종합 검증 완료" --body "Closes #6"`
+- [x] 이슈: `gh issue create --title "[Phase 6] 종합 통합 검증 및 E2E 테스트" --label "phase:6-deploy,type:chore"` (#49)
+- [x] 브랜치: `git checkout -b feat/#49-integration-and-deploy`
+- [x] 실행: `uv run python -m app.cli fetch && uv run python -m app.cli process --force`
+- [x] 검증: 백엔드/프론트엔드 단위 및 E2E 빌드/테스트 전수 통과
+- [ ] PR: `gh pr create --title "[Phase 6] 종합 검증 완료" --body "Closes #49"`
