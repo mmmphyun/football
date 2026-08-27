@@ -1,10 +1,95 @@
-"""360 트래킹 프레임 시퀀스 빌더 및 외삽 연동 모듈."""
-
+import math
 from typing import Any
 
 from app.analysis.common import build_lineup_maps, event_time
 from app.analysis.formation import get_position_anchor
 from app.analysis.predict import calculate_velocity, extrapolate_frame_players
+from app.config import PASS_LANE_BLOCK_RADIUS
+
+
+def _point_to_segment_distance(
+    px: float,
+    py: float,
+    ax: float,
+    ay: float,
+    bx: float,
+    by: float,
+) -> float:
+    """점 P(px, py)와 선분 AB 사이의 최단 유클리드 거리를 계산합니다."""
+    dx = bx - ax
+    dy = by - ay
+    seg_len_sq = dx * dx + dy * dy
+    if seg_len_sq < 1e-6:
+        return math.hypot(px - ax, py - ay)
+
+    # 선분 투영 매개변수 t 계산 (0 <= t <= 1 클램핑)
+    t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / seg_len_sq))
+    proj_x = ax + t * dx
+    proj_y = ay + t * dy
+    return math.hypot(px - proj_x, py - proj_y)
+
+
+def compute_passing_lanes(
+    actor_loc: tuple[float, float],
+    players: list[dict[str, Any]],
+    block_radius: float = PASS_LANE_BLOCK_RADIUS,
+    actual_pass_end: tuple[float, float] | None = None,
+) -> list[dict[str, Any]]:
+    """공을 쥔 선수(actor)로부터 동료 선수들로의 패스 경로에 대해 레이캐스팅을 수행하여 열린/차단된 패스길을 산출합니다."""
+    ax, ay = actor_loc
+    teammates = [p for p in players if p.get("is_teammate") and not p.get("is_actor")]
+    opponents = [p for p in players if not p.get("is_teammate")]
+
+    lanes: list[dict[str, Any]] = []
+
+    for tm in teammates:
+        tm_loc = tm.get("location")
+        if not tm_loc or len(tm_loc) < 2:
+            continue
+        tx, ty = float(tm_loc[0]), float(tm_loc[1])
+        dist = round(math.hypot(tx - ax, ty - ay), 2)
+        if dist < 1.0:
+            continue
+
+        # 상대 수비수가 패스 경로 반경 내에 존재하는지 레이캐스팅 검사
+        is_open = True
+        blocking_player_id = None
+        min_clearance = 999.0
+
+        for opp in opponents:
+            opp_loc = opp.get("location")
+            if not opp_loc or len(opp_loc) < 2:
+                continue
+            ox, oy = float(opp_loc[0]), float(opp_loc[1])
+            d_to_lane = _point_to_segment_distance(ox, oy, ax, ay, tx, ty)
+            if d_to_lane < min_clearance:
+                min_clearance = d_to_lane
+
+            if d_to_lane <= block_radius:
+                is_open = False
+                blocking_player_id = opp.get("player_id")
+
+        # 실제 선택된 패스 궤적인지 여부
+        is_selected = False
+        if actual_pass_end is not None:
+            ex, ey = actual_pass_end
+            if math.hypot(tx - ex, ty - ey) <= 4.0:
+                is_selected = True
+
+        lanes.append(
+            {
+                "from_location": [round(ax, 2), round(ay, 2)],
+                "to_location": [round(tx, 2), round(ty, 2)],
+                "target_player_id": tm.get("player_id"),
+                "is_open": is_open,
+                "is_selected": is_selected,
+                "distance": dist,
+                "clearance": round(min_clearance, 2) if min_clearance < 900.0 else None,
+                "blocking_player_id": blocking_player_id,
+            }
+        )
+
+    return lanes
 
 
 def _build_frame_description(ev: dict[str, Any]) -> str:
@@ -313,6 +398,27 @@ def build_highlight_frames(
         # 단기 외삽 (+2초) 적용
         extrapolated_players = extrapolate_frame_players(final_players, dt=2.0)
 
+        # 360 열린/차단 패스길 레이캐스팅 산출
+        actor_player = next((p for p in final_players if p.get("is_actor")), None)
+        if actor_player and actor_player.get("location"):
+            a_loc = (float(actor_player["location"][0]), float(actor_player["location"][1]))
+        elif ball_loc and len(ball_loc) >= 2:
+            a_loc = (float(ball_loc[0]), float(ball_loc[1]))
+        else:
+            a_loc = (60.0, 40.0)
+
+        actual_pass_end = None
+        if ev.get("type", {}).get("name") == "Pass":
+            end_l = ev.get("pass", {}).get("end_location")
+            if end_l and len(end_l) >= 2:
+                actual_pass_end = (float(end_l[0]), float(end_l[1]))
+
+        passing_lanes = compute_passing_lanes(
+            actor_loc=a_loc,
+            players=final_players,
+            actual_pass_end=actual_pass_end,
+        )
+
         frame_data = {
             "frame_index": frame_idx,
             "event_index": ev_idx,
@@ -325,6 +431,7 @@ def build_highlight_frames(
             "ball_location": ball_loc,
             "visible_area": visible_area,
             "players": extrapolated_players,
+            "passing_lanes": passing_lanes,
             "description": _build_frame_description(ev),
             "team_id": actor_team_id,
             "team_name": ev.get("team", {}).get("name", ""),

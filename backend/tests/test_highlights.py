@@ -85,7 +85,7 @@ class TestFrameBuilder:
         assert len(players_list) > 0
         assert isinstance(has_360, bool)
 
-        # 프레임 내부 필수 필드 검증
+        # 프레임 내부 필수 필드 및 passing_lanes 검증
         first_frame = frames[0]
         assert "frame_index" in first_frame
         assert "timestamp_sec" in first_frame
@@ -93,6 +93,8 @@ class TestFrameBuilder:
         assert "visible_area" in first_frame
         assert "description" in first_frame
         assert "event_type" in first_frame
+        assert "passing_lanes" in first_frame
+        assert isinstance(first_frame["passing_lanes"], list)
 
         # 선수 정보 내부 외삽(pred_x, pred_y) 검증
         for p in first_frame["players"]:

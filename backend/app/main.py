@@ -1,5 +1,5 @@
-"""FastAPI 기반 축구 전술 분석 및 하이라이트 REST API 애플리케이션."""
-
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
@@ -15,10 +15,19 @@ from app.storage import (
     init_db,
 )
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    """애플리케이션 시작 시 DB 테이블을 초기화합니다."""
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="Football Tactical Analysis API",
     description="StatsBomb Open Data & 360 전술 분석 및 하이라이트 인터랙티브 API",
     version="0.3.0",
+    lifespan=lifespan,
 )
 
 # 프론트엔드 연동을 위한 CORS 미들웨어 등록
@@ -29,12 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    """애플리케이션 시작 시 DB 테이블을 초기화합니다."""
-    init_db()
 
 
 @app.get("/api/health", summary="헬스 체크")

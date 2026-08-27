@@ -23,25 +23,25 @@
 ---
 
 ## Phase 2. 5대 인터랙티브 전술 분석 엔진 구축 (Analysis Engine)
-- [ ] 이슈: `gh issue create --title "[Phase 2] 3대 국면 포메이션 및 플레이북 분석 엔진 구축" --label "phase:2-analysis,type:feat"`
-- [ ] 브랜치: `git checkout -b feat/#2-analysis-engine`
-- [ ] 구현: 
+- [x] 이슈: `gh issue create --title "[Phase 2] 3대 국면 포메이션 및 플레이북 분석 엔진 구축" --label "phase:2-analysis,type:feat"` (#41)
+- [x] 브랜치: `git checkout -b feat/#41-analysis-engine`
+- [x] 구현: 
   - `formation.py` (수비/빌드업/공격 3대 국면 대형 및 라인 높이/너비/길이)
   - `playbook.py` (시그니처 공격 패턴 TOP 3 시퀀스 추출)
   - `pressure.py` (압박 트랩 핫스팟 & 수비 라인)
   - `timeline.py` (시간대별 전술 슬라이스)
   - `passes.py`, `zones.py`, `transitions.py`
-- [ ] 검증: `uv run ruff check backend/`
-- [ ] PR: `gh pr create --title "[Phase 2] 전술 분석 엔진 구축" --body "Closes #2"`
+- [x] 검증: `uv run ruff check backend/` && `uv run pytest backend/`
+- [x] PR: `gh pr create --title "[Phase 2] 전술 분석 엔진 구축" --body "Closes #41"` (PR #42 Merged)
 
 ---
 
 ## Phase 3. 하이라이트 & 360 패스길 프레임 빌더 및 API
-- [ ] 이슈: `gh issue create --title "[Phase 3] 하이라이트 추출, 360 패스길 빌더 및 FastAPI 연동" --label "phase:3-pipeline,type:feat"`
-- [ ] 브랜치: `git checkout -b feat/#3-pipeline-and-api`
-- [ ] 구현: `highlights.py`, `frames.py` (열린/차단된 패스길 레이캐스팅), `processing.py`, `cli.py`, `main.py`
-- [ ] 검증: `uv run ruff check backend/`
-- [ ] PR: `gh pr create --title "[Phase 3] 하이라이트 및 API 구축" --body "Closes #3"`
+- [x] 이슈: `gh issue create --title "[Phase 3] 하이라이트 추출, 360 패스길 빌더 및 FastAPI 연동" --label "phase:3-pipeline,type:feat"` (#43)
+- [x] 브랜치: `git checkout -b feat/#43-pipeline-and-api`
+- [x] 구현: `highlights.py`, `frames.py` (열린/차단된 패스길 레이캐스팅), `processing.py`, `cli.py`, `main.py`
+- [x] 검증: `uv run ruff check backend/` && `uv run pytest backend/`
+- [ ] PR: `gh pr create --title "[Phase 3] 하이라이트 및 API 구축" --body "Closes #43"`
 
 ---
 
