@@ -50,19 +50,19 @@
 - [x] 브랜치: `git checkout -b feat/#45-backend-tests`
 - [x] 구현: `tests/fixtures/`, `tests/test_analysis.py`, `tests/test_highlights.py`, `tests/test_api.py`, `tests/test_storage_pipeline.py`
 - [x] 검증: `uv run pytest backend/tests/ -v` && `uv run ruff check backend/`
-- [ ] PR: `gh pr create --title "[Phase 4] 백엔드 테스트 구축" --body "Closes #45"`
+- [x] PR: `gh pr create --title "[Phase 4] 백엔드 테스트 구축" --body "Closes #45"` (PR #46 Merged)
 
 ---
 
 ## Phase 5. React 18 + D3 동적 바둑판 프론트엔드 개편
-- [ ] 이슈: `gh issue create --title "[Phase 5] React 18 + D3 국면 모핑 바둑판 프론트엔드 구축" --label "phase:5-frontend,type:feat"`
-- [ ] 브랜치: `git checkout -b feat/#5-frontend-board`
-- [ ] 구현:
+- [x] 이슈: `gh issue create --title "[Phase 5] React 18 + D3 국면 모핑 바둑판 프론트엔드 구축" --label "phase:5-frontend,type:feat"` (#47)
+- [x] 브랜치: `git checkout -b feat/#47-frontend-board`
+- [x] 구현:
   - `TacticalBoard.tsx` (3대 국면 D3 모핑 애니메이션 + 플레이북 화살표 + 360 패스길)
   - `MatchView.tsx` (국면 전환 바 + 플레이북 카드 + 압박 트랩)
   - `HighlightView.tsx` (하이라이트 플레이어)
-- [ ] 검증: `cd frontend; npm run test; npm run build`
-- [ ] PR: `gh pr create --title "[Phase 5] 프론트엔드 동적 바둑판 구축" --body "Closes #5"`
+- [x] 검증: `cd frontend; npm run test; npm run build`
+- [ ] PR: `gh pr create --title "[Phase 5] 프론트엔드 동적 바둑판 구축" --body "Closes #47"`
 
 ---
 

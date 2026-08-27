@@ -30,16 +30,35 @@ export interface FormationPlayer {
   player_name: string;
   jersey_number?: number;
   position_id?: number;
+  position?: string;
   position_name?: string;
   is_starter?: boolean;
   x: number;
   y: number;
+  anchor_x?: number;
+  anchor_y?: number;
   event_count?: number;
+}
+
+export interface PhaseShape {
+  formation: string;
+  line_height: number;
+  width: number;
+  length: number;
+  players: FormationPlayer[];
+  all_players?: FormationPlayer[];
 }
 
 export interface FormationSummary {
   formation?: string;
   formation_name?: string;
+  team_length?: number;
+  team_width?: number;
+  team_center_x?: number;
+  team_center_y?: number;
+  defensive?: PhaseShape;
+  buildup?: PhaseShape;
+  attacking?: PhaseShape;
   players?: FormationPlayer[];
   starters?: FormationPlayer[];
   substitutes?: FormationPlayer[];
@@ -47,10 +66,60 @@ export interface FormationSummary {
   players_overall?: FormationPlayer[];
   players_in_possession?: FormationPlayer[];
   players_out_of_possession?: FormationPlayer[];
-  team_length?: number;
-  team_width?: number;
-  team_center_x?: number;
-  team_center_y?: number;
+}
+
+export interface PlaybookEvent {
+  type: "Pass" | "Carry" | "Shot" | string;
+  start_x: number;
+  start_y: number;
+  end_x: number;
+  end_y: number;
+  player_name?: string;
+  player_id?: number;
+  completed?: boolean;
+  xg?: number;
+  outcome?: string;
+}
+
+export interface PlaybookPattern {
+  pattern_id: string;
+  name: string;
+  name_ko: string;
+  description: string;
+  occurrences: number;
+  total_xg: number;
+  sequences: PlaybookEvent[][];
+}
+
+export interface PressureTrap {
+  zone: string;
+  count: number;
+  x: number;
+  y: number;
+  intensity: number;
+}
+
+export interface TimelineSlice {
+  slice_index: number;
+  minute_start: number;
+  minute_end: number;
+  label: string;
+  possession_pct: number;
+  pass_accuracy: number;
+  pressures: number;
+  defensive_line_height: number;
+  total_events: number;
+  phase_distribution: {
+    defensive: number;
+    buildup: number;
+    attacking: number;
+  };
+  key_events: Array<{
+    type: string;
+    minute: number;
+    team_id: number;
+    player: string;
+  }>;
 }
 
 export interface ZoneCell {
@@ -111,6 +180,8 @@ export interface PressureEvent {
   y: number;
   type: string;
   is_high_press: boolean;
+  minute?: number;
+  second?: number;
 }
 
 export interface BuildupSummary {
@@ -144,10 +215,13 @@ export interface BuildupSummary {
 export interface PressureSummary {
   ppda: number | null;
   high_press_events: number;
+  high_press_defensive_actions?: number;
+  total_pressures?: number;
   total_pressure_events: number;
-  pressure_per_min: number;
+  pressures_per_min?: number;
   turnovers_forced_att_third: number;
   pressure_events?: PressureEvent[];
+  pressure_traps?: PressureTrap[];
   pressures_by_third?: {
     defensive_third: number;
     middle_third: number;
@@ -184,6 +258,8 @@ export interface TeamSummary {
   zones: ZonesSummary;
   passes: PassNetworkSummary;
   pressure: PressureSummary;
+  playbook?: PlaybookPattern[];
+  timeline?: TimelineSlice[];
   buildup: BuildupSummary;
   transitions: TransitionsSummary;
 }
@@ -212,6 +288,17 @@ export interface Highlight {
   window_end_sec?: number;
 }
 
+export interface PassingLane {
+  from_location: [number, number];
+  to_location: [number, number];
+  target_player_id?: number;
+  is_open: boolean;
+  is_selected?: boolean;
+  distance?: number;
+  clearance?: number | null;
+  blocking_player_id?: number | null;
+}
+
 export interface FramePlayer {
   player_id?: number;
   player_name?: string;
@@ -220,9 +307,15 @@ export interface FramePlayer {
   is_actor: boolean;
   is_keeper: boolean;
   location: [number, number];
+  vx?: number;
+  vy?: number;
+  anchor_x?: number | null;
+  anchor_y?: number | null;
   velocity?: [number, number];
   speed_mps?: number;
   pred_location?: [number, number];
+  pred_x?: number;
+  pred_y?: number;
   is_inferred?: boolean;
 }
 
@@ -237,6 +330,7 @@ export interface Frame {
   ball_location?: [number, number];
   visible_area?: number[]; // [x1, y1, x2, y2, ...]
   players: FramePlayer[];
+  passing_lanes?: PassingLane[];
 }
 
 export interface PlayerMeta {
@@ -260,4 +354,15 @@ export interface HighlightFramesData {
 
 export type ViewMode = "tactics" | "highlights";
 
-export type TacticalTab = "formation" | "zones" | "passes" | "pressure" | "buildup" | "transitions";
+export type TacticalTab =
+  | "formation"
+  | "playbook"
+  | "pressure"
+  | "timeline"
+  | "zones"
+  | "passes"
+  | "buildup"
+  | "transitions";
+
+export type TacticalPhase = "defensive" | "buildup" | "attacking" | "overall";
+

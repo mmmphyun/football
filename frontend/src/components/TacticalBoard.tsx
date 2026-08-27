@@ -4,6 +4,11 @@ import {
   FramePlayer,
   PassEdge,
   PassNode,
+  PassingLane,
+  PhaseShape,
+  PlaybookPattern,
+  PressureTrap,
+  TacticalPhase,
   ZoneCell,
 } from "../types";
 import {
@@ -17,6 +22,14 @@ import {
 export interface TacticalBoardProps {
   width?: number;
   height?: number;
+  // 3대 국면 모핑 포메이션
+  showFormation?: boolean;
+  selectedPhase?: TacticalPhase;
+  phaseShape?: PhaseShape;
+  formationPlayers?: FormationPlayer[];
+  // 플레이북 시그니처 패턴 화살표
+  showPlaybook?: boolean;
+  activePlaybookPattern?: PlaybookPattern | null;
   // 12x8 존 점유율
   zones?: ZoneCell[];
   showZones?: boolean;
@@ -25,15 +38,13 @@ export interface TacticalBoardProps {
   passNodes?: PassNode[];
   passEdges?: PassEdge[];
   showPassNetwork?: boolean;
-  // 포메이션 평균 위치
-  formationPlayers?: FormationPlayer[];
-  showFormation?: boolean;
   // 빌드업 3분할
   showBuildup?: boolean;
   buildupData?: { defPct: number; midPct: number; attPct: number };
-  // 압박 & PPDA
+  // 압박 & PPDA & 압박 트랩
   showPressure?: boolean;
   pressureEvents?: Array<{ x: number; y: number; type: string; is_high_press: boolean }>;
+  pressureTraps?: PressureTrap[];
   ppdaValue?: number | null;
   // 전환 속도
   showTransitions?: boolean;
@@ -45,10 +56,12 @@ export interface TacticalBoardProps {
     is_fast: boolean;
     reached_final_third: boolean;
   }>;
-  // 하이라이트/프레임 렌더링
+  // 하이라이트/프레임 렌더링 & 360 패스길
   players?: FramePlayer[];
   ballLocation?: [number, number];
   visibleArea?: number[];
+  passingLanes?: PassingLane[];
+  showPassingLanes?: boolean;
   showVisibleArea?: boolean;
   showVelocity?: boolean;
   showGhostPrediction?: boolean;
@@ -64,24 +77,31 @@ const SVG_HEIGHT = 840;
 const MARGIN = 20;
 
 export const TacticalBoard: React.FC<TacticalBoardProps> = ({
+  showFormation = false,
+  selectedPhase = "overall",
+  phaseShape,
+  formationPlayers,
+  showPlaybook = false,
+  activePlaybookPattern,
   zones,
   showZones = false,
   zoneColorTheme = "emerald",
   passNodes,
   passEdges,
   showPassNetwork = false,
-  formationPlayers,
-  showFormation = false,
   showBuildup = false,
   buildupData,
   showPressure = false,
   pressureEvents,
+  pressureTraps,
   ppdaValue,
   showTransitions = false,
   transitionSequences,
   players,
   ballLocation,
   visibleArea,
+  passingLanes,
+  showPassingLanes = true,
   showVisibleArea = true,
   showVelocity = true,
   showGhostPrediction = true,
@@ -127,7 +147,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     y: number;
   } | null>(null);
 
-  // 존 컬러 테마 (상대 강도 기반)
+  // 존 컬러 테마
   const getZoneFill = (ratio: number) => {
     const intensity = Math.min(1.0, ratio / maxZoneRatio);
     const opacity = Math.max(0.04, intensity * 0.75);
@@ -142,6 +162,14 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     if (showInferredPlayers) return players;
     return players.filter((p) => !p.is_inferred);
   }, [players, showInferredPlayers]);
+
+  // 포메이션 모핑 대상 선수 목록
+  const activeFormationPlayers = useMemo(() => {
+    if (phaseShape?.players && phaseShape.players.length > 0) {
+      return phaseShape.players;
+    }
+    return formationPlayers || [];
+  }, [phaseShape, formationPlayers]);
 
   return (
     <div className="relative w-full aspect-[124/84] max-w-5xl mx-auto bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl select-none">
@@ -162,6 +190,41 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             orient="auto-start-reverse"
           >
             <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+          </marker>
+
+          {/* 플레이북 공격 전개 화살표 마커 */}
+          <marker
+            id="playbook-pass-arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+          </marker>
+          <marker
+            id="playbook-carry-arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#a855f7" />
+          </marker>
+          <marker
+            id="playbook-shot-arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#facc15" />
           </marker>
 
           {/* 속도 벡터 화살표 마커 */}
@@ -188,6 +251,41 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             orient="auto"
           >
             <path d="M 0 1 L 10 5 L 0 9 z" fill="#a855f7" />
+          </marker>
+
+          {/* 360 패스길 화살표 마커 */}
+          <marker
+            id="open-lane-arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e" />
+          </marker>
+          <marker
+            id="blocked-lane-arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+          </marker>
+          <marker
+            id="selected-lane-arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#eab308" />
           </marker>
         </defs>
 
@@ -285,7 +383,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             );
           })}
 
-
         {/* 2-1. 빌드업 3분할 써드 (0~40, 40~80, 80~120) 오버레이 */}
         {showBuildup && (
           <g>
@@ -326,15 +423,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     textAnchor="middle"
                   >
                     {buildupData?.defPct?.toFixed(1) ?? "0.0"}%
-                  </text>
-                  <text
-                    x={x1 + w / 2}
-                    y={pitchY + pitchH / 2 + 25}
-                    fill="#bfdbfe"
-                    fontSize="12"
-                    textAnchor="middle"
-                  >
-                    빌드업 시작 비율
                   </text>
                 </g>
               );
@@ -378,15 +466,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   >
                     {buildupData?.midPct?.toFixed(1) ?? "0.0"}%
                   </text>
-                  <text
-                    x={x1 + w / 2}
-                    y={pitchY + pitchH / 2 + 25}
-                    fill="#a7f3d0"
-                    fontSize="12"
-                    textAnchor="middle"
-                  >
-                    빌드업 시작 비율
-                  </text>
                 </g>
               );
             })()}
@@ -429,22 +508,13 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   >
                     {buildupData?.attPct?.toFixed(1) ?? "0.0"}%
                   </text>
-                  <text
-                    x={x1 + w / 2}
-                    y={pitchY + pitchH / 2 + 25}
-                    fill="#fef3c7"
-                    fontSize="12"
-                    textAnchor="middle"
-                  >
-                    빌드업 시작 비율
-                  </text>
                 </g>
               );
             })()}
           </g>
         )}
 
-        {/* 2-2. 압박 & PPDA 오버레이 */}
+        {/* 2-2. 압박 & PPDA & 압박 트랩 오버레이 */}
         {showPressure && (
           <g>
             {/* PPDA 하이프레스 구역 (x >= 40m) 음영 */}
@@ -499,7 +569,45 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               );
             })()}
 
-            {/* 개별 압박 / 수비 액션 발생 위치 마커 */}
+            {/* 압박 트랩 핫스팟 렌더링 */}
+            {pressureTraps &&
+              pressureTraps.map((trap, idx) => {
+                const [tx, ty] = toSvg(trap.x, trap.y);
+                return (
+                  <g key={`pressure-trap-${idx}`} className="animate-pulse">
+                    <circle
+                      cx={tx}
+                      cy={ty}
+                      r="28"
+                      fill="rgba(239, 68, 68, 0.25)"
+                      stroke="#ef4444"
+                      strokeWidth="2"
+                      strokeDasharray="4 2"
+                    />
+                    <circle
+                      cx={tx}
+                      cy={ty}
+                      r="10"
+                      fill="#ef4444"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                    <text
+                      x={tx}
+                      y={ty - 34}
+                      fill="#fca5a5"
+                      fontSize="11"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                      className="drop-shadow"
+                    >
+                      {trap.zone} ({trap.count}회)
+                    </text>
+                  </g>
+                );
+              })}
+
+            {/* 개별 압박 마커 */}
             {pressureEvents &&
               pressureEvents.map((pe, idx) => {
                 const [sx, sy] = toSvg(pe.x, pe.y);
@@ -509,20 +617,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     <circle
                       cx={sx}
                       cy={sy}
-                      r="6"
+                      r="5"
                       fill={color}
                       fillOpacity="0.75"
                       stroke="#ffffff"
                       strokeWidth="1.5"
-                    />
-                    <circle
-                      cx={sx}
-                      cy={sy}
-                      r="12"
-                      fill="none"
-                      stroke={color}
-                      strokeWidth="1"
-                      strokeOpacity="0.4"
                     />
                   </g>
                 );
@@ -530,75 +629,17 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </g>
         )}
 
-        {/* 2-3. 전환 속도 (턴오버 회수 → 전개 벡터) 오버레이 */}
+        {/* 2-3. 전환 속도 오버레이 */}
         {showTransitions && (
           <g>
-            <defs>
-              <marker
-                id="trans-arrow"
-                viewBox="0 0 10 10"
-                refX="8"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#06b6d4" />
-              </marker>
-              <marker
-                id="trans-arrow-fast"
-                viewBox="0 0 10 10"
-                refX="8"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#ec4899" />
-              </marker>
-            </defs>
-
-            {/* 공격 진영 (파이널 써드) 가이드 */}
-            {(() => {
-              const [x1] = toSvg(80, 0);
-              const [x2] = toSvg(120, 0);
-              return (
-                <rect
-                  x={x1}
-                  y={pitchY}
-                  width={x2 - x1}
-                  height={pitchH}
-                  fill="rgba(6, 182, 212, 0.05)"
-                  stroke="rgba(6, 182, 212, 0.3)"
-                  strokeDasharray="4 4"
-                />
-              );
-            })()}
-
-            {/* 전환 전개 벡터들 */}
             {transitionSequences &&
               transitionSequences.map((seq, idx) => {
                 const [sx, sy] = toSvg(seq.start[0], seq.start[1]);
                 const [ex, ey] = toSvg(seq.end[0], seq.end[1]);
                 const color = seq.is_fast ? "#ec4899" : "#06b6d4";
-                const marker = seq.is_fast
-                  ? "url(#trans-arrow-fast)"
-                  : "url(#trans-arrow)";
-                const midX = (sx + ex) / 2;
-                const midY = (sy + ey) / 2;
-
                 return (
                   <g key={`trans-seq-${idx}`}>
-                    {/* 시작점 (볼 회수 기점) */}
-                    <circle
-                      cx={sx}
-                      cy={sy}
-                      r="6"
-                      fill={color}
-                      stroke="#ffffff"
-                      strokeWidth="1.5"
-                    />
-                    {/* 전개 화살표 선 */}
+                    <circle cx={sx} cy={sy} r="6" fill={color} stroke="#ffffff" strokeWidth="1.5" />
                     <line
                       x1={sx}
                       y1={sy}
@@ -607,23 +648,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       stroke={color}
                       strokeWidth={seq.is_fast ? "3" : "2"}
                       strokeOpacity="0.85"
-                      markerEnd={marker}
                     />
-                    {/* 전개 속도 라벨 */}
-                    {seq.speed >= 2.0 && (
-                      <text
-                        x={midX}
-                        y={midY - 5}
-                        fill="#ffffff"
-                        fontSize="11"
-                        fontWeight="bold"
-                        fontFamily="monospace"
-                        textAnchor="middle"
-                        className="drop-shadow"
-                      >
-                        {seq.speed.toFixed(1)}m/s
-                      </text>
-                    )}
                   </g>
                 );
               })}
@@ -635,62 +660,24 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           {/* 하프라인 */}
           <line x1={halfX} y1={pitchY} x2={halfX} y2={pitchY2} />
 
-          {/* 센터서클 (반지름 9.15m) */}
+          {/* 센터서클 */}
           <circle cx={centerSpotX} cy={centerSpotY} r={9.15 * 10} />
           <circle cx={centerSpotX} cy={centerSpotY} r="3.5" fill="rgba(255, 255, 255, 0.6)" />
 
-          {/* 홈 페널티 박스 (0..18, 18..62) */}
+          {/* 페널티 박스 홈 & 어웨이 */}
           {(() => {
             const [p1x, p1y] = toSvg(0, 18);
             const [p2x, p2y] = toSvg(18, 62);
             return <rect x={p1x} y={p1y} width={p2x - p1x} height={p2y - p1y} />;
           })()}
-
-          {/* 홈 골 에어리어 (0..6, 30..50) */}
-          {(() => {
-            const [g1x, g1y] = toSvg(0, 30);
-            const [g2x, g2y] = toSvg(6, 50);
-            return <rect x={g1x} y={g1y} width={g2x - g1x} height={g2y - g1y} />;
-          })()}
-
-          {/* 홈 페널티 스팟 (12, 40) & 아크 */}
-          {(() => {
-            const [spX, spY] = toSvg(12, 40);
-            return (
-              <>
-                <circle cx={spX} cy={spY} r="3" fill="rgba(255, 255, 255, 0.6)" />
-                <path d={`M ${toSvg(18, 32.5).join(" ")} A ${9.15 * 10} ${9.15 * 10} 0 0 1 ${toSvg(18, 47.5).join(" ")}`} />
-              </>
-            );
-          })()}
-
-          {/* 어웨이 페널티 박스 (102..120, 18..62) */}
           {(() => {
             const [p1x, p1y] = toSvg(102, 18);
             const [p2x, p2y] = toSvg(120, 62);
             return <rect x={p1x} y={p1y} width={p2x - p1x} height={p2y - p1y} />;
           })()}
-
-          {/* 어웨이 골 에어리어 (114..120, 30..50) */}
-          {(() => {
-            const [g1x, g1y] = toSvg(114, 30);
-            const [g2x, g2y] = toSvg(120, 50);
-            return <rect x={g1x} y={g1y} width={g2x - g1x} height={g2y - g1y} />;
-          })()}
-
-          {/* 어웨이 페널티 스팟 (108, 40) & 아크 */}
-          {(() => {
-            const [spX, spY] = toSvg(108, 40);
-            return (
-              <>
-                <circle cx={spX} cy={spY} r="3" fill="rgba(255, 255, 255, 0.6)" />
-                <path d={`M ${toSvg(102, 32.5).join(" ")} A ${9.15 * 10} ${9.15 * 10} 0 0 0 ${toSvg(102, 47.5).join(" ")}`} />
-              </>
-            );
-          })()}
         </g>
 
-        {/* 4. 360 가시 영역 (visible_area) 다각형 음영 */}
+        {/* 4. 360 가시 영역 (visible_area) 다각형 */}
         {showVisibleArea && visibleArea && visibleArea.length >= 6 && (
           <polygon
             points={formatPolygonPoints(visibleArea, SVG_WIDTH, SVG_HEIGHT, MARGIN)}
@@ -701,7 +688,124 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           />
         )}
 
-        {/* 5. 패스 네트워크 엣지 및 노드 */}
+        {/* 4-1. 360 열린 / 차단된 패스길 레이캐스팅 렌더링 */}
+        {showPassingLanes && passingLanes && (
+          <g>
+            {passingLanes.map((lane, idx) => {
+              const [fx, fy] = toSvg(lane.from_location[0], lane.from_location[1]);
+              const [tx, ty] = toSvg(lane.to_location[0], lane.to_location[1]);
+
+              if (lane.is_selected) {
+                return (
+                  <g key={`lane-selected-${idx}`}>
+                    <line
+                      x1={fx}
+                      y1={fy}
+                      x2={tx}
+                      y2={ty}
+                      stroke="#eab308"
+                      strokeWidth="3.5"
+                      markerEnd="url(#selected-lane-arrow)"
+                    />
+                  </g>
+                );
+              }
+
+              if (lane.is_open) {
+                return (
+                  <line
+                    key={`lane-open-${idx}`}
+                    x1={fx}
+                    y1={fy}
+                    x2={tx}
+                    y2={ty}
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                    strokeOpacity="0.75"
+                    markerEnd="url(#open-lane-arrow)"
+                  />
+                );
+              }
+
+              return (
+                <line
+                  key={`lane-blocked-${idx}`}
+                  x1={fx}
+                  y1={fy}
+                  x2={tx}
+                  y2={ty}
+                  stroke="#ef4444"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                  strokeOpacity="0.6"
+                  markerEnd="url(#blocked-lane-arrow)"
+                />
+              );
+            })}
+          </g>
+        )}
+
+        {/* 5. 플레이북 시그니처 패턴 전개 화살표 */}
+        {showPlaybook && activePlaybookPattern && (
+          <g>
+            {activePlaybookPattern.sequences.map((seq, sIdx) => (
+              <g key={`playbook-seq-${sIdx}`}>
+                {seq.map((ev, eIdx) => {
+                  const [sx, sy] = toSvg(ev.start_x, ev.start_y);
+                  const [ex, ey] = toSvg(ev.end_x, ev.end_y);
+
+                  if (ev.type === "Shot") {
+                    return (
+                      <g key={`pb-ev-${sIdx}-${eIdx}`}>
+                        <line
+                          x1={sx}
+                          y1={sy}
+                          x2={ex}
+                          y2={ey}
+                          stroke="#facc15"
+                          strokeWidth="4"
+                          markerEnd="url(#playbook-shot-arrow)"
+                        />
+                        <circle cx={ex} cy={ey} r="8" fill="#facc15" stroke="#000000" strokeWidth="2" />
+                      </g>
+                    );
+                  }
+
+                  if (ev.type === "Carry") {
+                    return (
+                      <line
+                        key={`pb-ev-${sIdx}-${eIdx}`}
+                        x1={sx}
+                        y1={sy}
+                        x2={ex}
+                        y2={ey}
+                        stroke="#a855f7"
+                        strokeWidth="2.5"
+                        strokeDasharray="5 3"
+                        markerEnd="url(#playbook-carry-arrow)"
+                      />
+                    );
+                  }
+
+                  return (
+                    <line
+                      key={`pb-ev-${sIdx}-${eIdx}`}
+                      x1={sx}
+                      y1={sy}
+                      x2={ex}
+                      y2={ey}
+                      stroke="#38bdf8"
+                      strokeWidth="3"
+                      markerEnd="url(#playbook-pass-arrow)"
+                    />
+                  );
+                })}
+              </g>
+            ))}
+          </g>
+        )}
+
+        {/* 6. 패스 네트워크 엣지 및 노드 */}
         {showPassNetwork && passEdges && (
           <g>
             {passEdges.map((edge, idx) => {
@@ -713,15 +817,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               const dst = nodeMap.get(recipientId);
               if (!src || !dst) return null;
 
-              const srcX = Math.max(4, Math.min(116, src.x));
-              const srcY = Math.max(4, Math.min(76, src.y));
-              const dstX = Math.max(4, Math.min(116, dst.x));
-              const dstY = Math.max(4, Math.min(76, dst.y));
-
-              const [x1, y1] = toSvg(srcX, srcY);
-              const [x2, y2] = toSvg(dstX, dstY);
-              const edgeCount = edge.count ?? edge.pass_count ?? 1;
-              const strokeWidth = Math.max(1.5, Math.min(8, edgeCount * 0.7));
+              const [x1, y1] = toSvg(src.x, src.y);
+              const [x2, y2] = toSvg(dst.x, dst.y);
+              const count = edge.count ?? edge.pass_count ?? 1;
 
               return (
                 <line
@@ -731,7 +829,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   x2={x2}
                   y2={y2}
                   stroke="rgba(56, 189, 248, 0.65)"
-                  strokeWidth={strokeWidth}
+                  strokeWidth={Math.max(1.5, Math.min(7, count * 0.7))}
                   markerEnd="url(#pass-arrow)"
                 />
               );
@@ -739,89 +837,81 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </g>
         )}
 
-        {showPassNetwork && passNodes && (
+        {/* 7. 포메이션 3대 국면 동적 모핑 렌더링 (CSS 트랜지션 적용) */}
+        {showFormation && (
           <g>
-            {passNodes.map((n) => {
-              const clampedX = Math.max(4, Math.min(116, n.x));
-              const clampedY = Math.max(4, Math.min(76, n.y));
-              const [sx, sy] = toSvg(clampedX, clampedY);
+            {/* 수비 라인 높이 표시선 */}
+            {phaseShape?.line_height !== undefined && (
+              <g>
+                {(() => {
+                  const [lx] = toSvg(phaseShape.line_height, 0);
+                  return (
+                    <>
+                      <line
+                        x1={lx}
+                        y1={pitchY}
+                        x2={lx}
+                        y2={pitchY2}
+                        stroke="#60a5fa"
+                        strokeWidth="2"
+                        strokeDasharray="6 4"
+                        style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
+                      />
+                      <text
+                        x={lx + 6}
+                        y={pitchY + 20}
+                        fill="#93c5fd"
+                        fontSize="11"
+                        fontWeight="bold"
+                      >
+                        수비 라인: {phaseShape.line_height.toFixed(1)}m
+                      </text>
+                    </>
+                  );
+                })()}
+              </g>
+            )}
 
-              const passCount = n.pass_count ?? n.pass_completions ?? n.pass_attempts ?? 0;
-              const r = Math.max(12, Math.min(22, 10 + passCount * 0.3));
-              const textY = clampedY > 68 ? sy - r - 4 : sy + r + 12;
-
+            {/* 11명 선수 토큰 (위치 모핑 애니메이션) */}
+            {activeFormationPlayers.map((fp) => {
+              const [sx, sy] = toSvg(fp.x, fp.y);
               return (
-                <g key={`pass-node-${n.player_id}`} className="cursor-pointer">
+                <g
+                  key={`formation-player-${fp.player_id}`}
+                  style={{
+                    transform: `translate(${sx}px, ${sy}px)`,
+                    transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                >
                   <circle
-                    cx={sx}
-                    cy={sy}
-                    r={r}
-                    fill="#0284c7"
+                    r="15"
+                    fill={
+                      selectedPhase === "defensive"
+                        ? "#2563eb"
+                        : selectedPhase === "attacking"
+                        ? "#dc2626"
+                        : "#059669"
+                    }
                     stroke="#ffffff"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
+                    className="drop-shadow-lg"
                   />
                   <text
-                    x={sx}
-                    y={sy + 4}
+                    y="4"
                     fill="#ffffff"
                     fontSize="11"
                     fontWeight="bold"
                     textAnchor="middle"
                   >
-                    {n.jersey_number ?? n.player_name.slice(0, 2)}
+                    {fp.jersey_number ?? fp.position?.slice(0, 2) ?? "P"}
                   </text>
                   <text
-                    x={sx}
-                    y={textY}
-                    fill="#e0f2fe"
-                    fontSize="10"
-                    fontWeight="medium"
-                    textAnchor="middle"
-                  >
-                    {n.player_name.split(" ").pop()}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        )}
-
-        {/* 6. 포메이션 평균 위치 표시 */}
-        {showFormation && formationPlayers && (
-          <g>
-            {formationPlayers.map((fp) => {
-              const clampedX = Math.max(4, Math.min(116, fp.x));
-              const clampedY = Math.max(4, Math.min(76, fp.y));
-              const [sx, sy] = toSvg(clampedX, clampedY);
-              const textY = clampedY > 68 ? sy - 18 : sy + 26;
-
-              return (
-                <g key={`formation-player-${fp.player_id}`}>
-                  <circle
-                    cx={sx}
-                    cy={sy}
-                    r="14"
-                    fill="#059669"
-                    stroke="#ffffff"
-                    strokeWidth="2"
-                    opacity="0.9"
-                  />
-                  <text
-                    x={sx}
-                    y={sy + 4}
+                    y="27"
                     fill="#ffffff"
-                    fontSize="11"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                  >
-                    {fp.jersey_number ?? fp.position_name?.slice(0, 2) ?? "P"}
-                  </text>
-                  <text
-                    x={sx}
-                    y={textY}
-                    fill="#d1fae5"
                     fontSize="10"
+                    fontWeight="semibold"
                     textAnchor="middle"
+                    className="drop-shadow"
                   >
                     {fp.player_name.split(" ").pop()}
                   </text>
@@ -831,7 +921,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </g>
         )}
 
-        {/* 7. 선수 토큰 및 속도/외삽 렌더링 (리플레이/하이라이트) */}
+        {/* 8. 프레임/하이라이트 선수 토큰 */}
         {renderPlayers.map((p, idx) => {
           const [sx, sy] = toSvg(p.location[0], p.location[1]);
           const isHome = p.is_teammate;
@@ -897,7 +987,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 />
               )}
 
-              {/* 액터 하이라이트 후광 링 */}
               {p.is_actor && (
                 <circle
                   cx={sx}
@@ -909,26 +998,16 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   className="animate-pulse"
                 />
               )}
-
-              {/* 선수 원 토큰 */}
               <circle
                 cx={sx}
                 cy={sy}
                 r="13"
-                fill={
-                  p.is_keeper
-                    ? "#eab308"
-                    : isHome
-                    ? "#2563eb"
-                    : "#dc2626"
-                }
+                fill={p.is_keeper ? "#eab308" : isHome ? "#2563eb" : "#dc2626"}
                 stroke={isInferred ? "#94a3b8" : "#ffffff"}
                 strokeWidth={isInferred ? 1.5 : 2}
                 strokeDasharray={isInferred ? "3 2" : undefined}
                 opacity={isInferred ? 0.45 : 1.0}
               />
-
-              {/* 선수 라벨 */}
               <text
                 x={sx}
                 y={sy + 4}
@@ -944,7 +1023,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           );
         })}
 
-        {/* 8. 공 토큰 */}
+        {/* 9. 공 토큰 */}
         {ballLocation && (
           <g>
             {(() => {
@@ -959,7 +1038,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </g>
         )}
 
-        {/* 9. 존 점유율 마우스 호버 툴팁 */}
+        {/* 10. 마우스 호버 툴팁 */}
         {showZones && hoveredZone && (
           <g
             transform={`translate(${Math.min(
@@ -978,32 +1057,14 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               strokeWidth="1.5"
               className="drop-shadow-xl"
             />
-            <text
-              x="0"
-              y="-14"
-              fill="#94a3b8"
-              fontSize="10"
-              fontWeight="bold"
-              textAnchor="middle"
-            >
-              구역 ({hoveredZone.zone_x}, {hoveredZone.zone_y})
-            </text>
-            <text
-              x="0"
-              y="1"
-              fill="#ffffff"
-              fontSize="12"
-              fontWeight="black"
-              fontFamily="monospace"
-              textAnchor="middle"
-            >
+            <text x="0" y="1" fill="#ffffff" fontSize="12" fontWeight="bold" textAnchor="middle">
               {(hoveredZone.ratio * 100).toFixed(2)}% ({hoveredZone.count}회)
             </text>
           </g>
         )}
       </svg>
 
-      {/* 이벤트 오버레이 정보 배너 */}
+      {/* 이벤트 오버레이 배너 */}
       {(frameDescription || minute !== undefined) && (
         <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur border border-slate-700/80 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 shadow-lg">
           {minute !== undefined && (

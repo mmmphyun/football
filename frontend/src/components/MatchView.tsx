@@ -1,12 +1,24 @@
 import React, { useState } from "react";
-import { Match, MatchSummary, TacticalTab } from "../types";
+import {
+  Match,
+  MatchSummary,
+  PlaybookPattern,
+  TacticalPhase,
+  TacticalTab,
+} from "../types";
 import { TacticalBoard } from "./TacticalBoard";
 import { StatCard } from "./StatCard";
 import {
+  Activity,
+  ArrowRightLeft,
+  BookOpen,
   Compass,
   Grid,
+  Layers,
   Share2,
+  Shield,
   ShieldAlert,
+  Sword,
   TrendingUp,
   Zap,
 } from "lucide-react";
@@ -23,7 +35,10 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const [selectedTeamId, setSelectedTeamId] = useState<number>(
     homeTeamId ?? Number(Object.keys(summary.teams)[0])
   );
+  const [selectedPhase, setSelectedPhase] = useState<TacticalPhase>("buildup");
   const [activeTab, setActiveTab] = useState<TacticalTab>("formation");
+  const [selectedPlaybookPattern, setSelectedPlaybookPattern] =
+    useState<PlaybookPattern | null>(null);
 
   const currentTeam = summary.teams[String(selectedTeamId)] || Object.values(summary.teams)[0];
 
@@ -35,18 +50,34 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
     );
   }
 
-  const { formation, zones, passes, pressure, buildup, transitions } = currentTeam;
+  const { formation, zones, passes, pressure, buildup, transitions, playbook, timeline } =
+    currentTeam;
+
+  // 3대 국면 데이터 추출
+  const phaseShape =
+    selectedPhase === "defensive"
+      ? formation?.defensive
+      : selectedPhase === "attacking"
+      ? formation?.attacking
+      : formation?.buildup;
+
+  const currentFormationName =
+    phaseShape?.formation ||
+    formation?.formation_name ||
+    formation?.formation ||
+    "4-3-3";
+
   const starters =
+    phaseShape?.players ||
     formation?.starters ||
     formation?.players?.filter((p) => p.is_starter) ||
     formation?.players ||
     [];
+
   const substitutes =
     formation?.substitutes ||
     formation?.players?.filter((p) => !p.is_starter && (p.event_count ?? 0) > 0) ||
     [];
-  const formationPlayers = starters.length > 0 ? starters : (formation?.players || []);
-  const formationName = formation?.formation_name || formation?.formation || "포메이션 정보 없음";
 
   const buildupDefPct =
     buildup?.defensive_third_pct ??
@@ -102,6 +133,64 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
         </div>
       </div>
 
+      {/* 3대 국면(수비 ↔ 빌드업 ↔ 공격) 동적 모핑 전환 컨트롤 바 */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center space-x-2">
+            <Layers className="w-5 h-5 text-emerald-400" />
+            <div>
+              <div className="text-sm font-bold text-white">3대 국면 전술 모핑 (Tactical Shape Shift)</div>
+              <div className="text-xs text-slate-400">공 소유권 및 진영에 따른 실시간 대형 전환</div>
+            </div>
+          </div>
+
+          <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800 space-x-1">
+            <button
+              onClick={() => {
+                setSelectedPhase("defensive");
+                setActiveTab("formation");
+              }}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                selectedPhase === "defensive" && activeTab === "formation"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span>수비 국면 대형</span>
+            </button>
+            <button
+              onClick={() => {
+                setSelectedPhase("buildup");
+                setActiveTab("formation");
+              }}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                selectedPhase === "buildup" && activeTab === "formation"
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              <span>빌드업 국면 대형</span>
+            </button>
+            <button
+              onClick={() => {
+                setSelectedPhase("attacking");
+                setActiveTab("formation");
+              }}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                selectedPhase === "attacking" && activeTab === "formation"
+                  ? "bg-rose-600 text-white shadow-lg shadow-rose-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Sword className="w-4 h-4" />
+              <span>공격 국면 대형</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 팀 선택 토글 & 전술 지표 탭 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-3">
         {/* 팀 토글 */}
@@ -130,20 +219,48 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           <button
             onClick={() => setActiveTab("formation")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === "formation"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
+              activeTab === "formation" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <Compass className="w-3.5 h-3.5" />
             <span>포메이션</span>
           </button>
           <button
+            onClick={() => {
+              setActiveTab("playbook");
+              if (playbook && playbook.length > 0) {
+                setSelectedPlaybookPattern(playbook[0]);
+              }
+            }}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              activeTab === "playbook" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>시그니처 플레이북</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("pressure")}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              activeTab === "pressure" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>압박 트랩 & PPDA</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("timeline")}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              activeTab === "timeline" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>전술 타임라인</span>
+          </button>
+          <button
             onClick={() => setActiveTab("zones")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === "zones"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
+              activeTab === "zones" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <Grid className="w-3.5 h-3.5" />
@@ -152,31 +269,16 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           <button
             onClick={() => setActiveTab("passes")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === "passes"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
+              activeTab === "passes" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>패스 네트워크</span>
           </button>
           <button
-            onClick={() => setActiveTab("pressure")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === "pressure"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span>압박 & PPDA</span>
-          </button>
-          <button
             onClick={() => setActiveTab("buildup")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === "buildup"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
+              activeTab === "buildup" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
@@ -185,9 +287,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           <button
             onClick={() => setActiveTab("transitions")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === "transitions"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:text-slate-200"
+              activeTab === "transitions" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
@@ -202,7 +302,11 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
         <div className="lg:col-span-7 space-y-3">
           <TacticalBoard
             showFormation={activeTab === "formation"}
-            formationPlayers={formationPlayers}
+            selectedPhase={selectedPhase}
+            phaseShape={phaseShape}
+            formationPlayers={starters}
+            showPlaybook={activeTab === "playbook"}
+            activePlaybookPattern={selectedPlaybookPattern}
             showZones={activeTab === "zones"}
             zones={zones?.cells}
             zoneColorTheme={selectedTeamId === homeTeamId ? "blue" : "orange"}
@@ -217,12 +321,13 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
             }}
             showPressure={activeTab === "pressure"}
             pressureEvents={pressure?.pressure_events}
+            pressureTraps={pressure?.pressure_traps}
             ppdaValue={pressure?.ppda}
             showTransitions={activeTab === "transitions"}
             transitionSequences={transitions?.transition_sequences}
           />
           <div className="text-center text-xs text-slate-500">
-            * 피치 좌표계: 0 → 120 (좌측 골대 → 우측 공격 방향)
+            * 피치 좌표계: 0 → 120 (좌측 골대 → 우측 공격 방향) | D3 SVG 모핑 트랜지션 적용
           </div>
         </div>
 
@@ -231,15 +336,31 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           {activeTab === "formation" && (
             <div className="space-y-4">
               <StatCard
-                title="기본 포메이션"
-                value={formationName}
-                subtitle={`선발: ${starters.length}명 / 교체 출전: ${substitutes.length}명`}
-                badge="Starting XI 선발 11명"
-                badgeColor="emerald"
+                title={`${selectedPhase === "defensive" ? "수비" : selectedPhase === "attacking" ? "공격" : "빌드업"} 국면 대형`}
+                value={currentFormationName}
+                subtitle={`라인 높이: ${phaseShape?.line_height?.toFixed(1) ?? "-"}m | 너비: ${phaseShape?.width?.toFixed(1) ?? "-"}m | 길이: ${phaseShape?.length?.toFixed(1) ?? "-"}m`}
+                badge={`${selectedPhase.toUpperCase()} SHAPE`}
+                badgeColor={selectedPhase === "defensive" ? "blue" : selectedPhase === "attacking" ? "rose" : "emerald"}
               />
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                  <div className="text-[11px] text-slate-400">수비 라인 높이</div>
+                  <div className="text-lg font-bold text-white font-mono">{phaseShape?.line_height?.toFixed(1) ?? "35.0"}m</div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                  <div className="text-[11px] text-slate-400">대형 너비 (Spread)</div>
+                  <div className="text-lg font-bold text-white font-mono">{phaseShape?.width?.toFixed(1) ?? "45.0"}m</div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                  <div className="text-[11px] text-slate-400">대형 길이 (Compactness)</div>
+                  <div className="text-lg font-bold text-white font-mono">{phaseShape?.length?.toFixed(1) ?? "30.0"}m</div>
+                </div>
+              </div>
+
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
-                  선발 선수 평균 참여 좌표 ({starters.length}명)
+                  국면별 선수 참여 좌표 ({starters.length}명)
                 </h4>
                 <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
                   {starters.map((p) => (
@@ -252,8 +373,8 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                           {p.jersey_number ?? "-"}
                         </span>
                         <span className="font-medium text-slate-200">{p.player_name}</span>
-                        {p.position_name && (
-                          <span className="text-[10px] text-slate-400">({p.position_name})</span>
+                        {p.position && (
+                          <span className="text-[10px] text-slate-400">({p.position})</span>
                         )}
                       </div>
                       <div className="font-mono text-slate-400">
@@ -268,7 +389,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                     <h4 className="text-xs font-bold text-amber-400 uppercase mb-2">
                       교체 출전 선수 ({substitutes.length}명)
                     </h4>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                       {substitutes.map((p) => (
                         <div
                           key={p.player_id}
@@ -281,13 +402,129 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                             <span className="text-slate-300 text-[11px]">{p.player_name}</span>
                           </div>
                           <span className="text-[10px] text-slate-500 font-mono">
-                            {p.event_count}회 관여
+                            {p.event_count ?? 0}회 관여
                           </span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "playbook" && (
+            <div className="space-y-4">
+              <StatCard
+                title="시그니처 공격 패턴 TOP 3 플레이북"
+                value={`${playbook?.length || 0}개 패턴`}
+                subtitle="반복 공격 전개 시퀀스 자동 분석"
+                badge="TOP 3 Playbook"
+                badgeColor="emerald"
+              />
+
+              <div className="space-y-3">
+                {playbook?.map((pattern) => {
+                  const isSelected = selectedPlaybookPattern?.pattern_id === pattern.pattern_id;
+                  return (
+                    <div
+                      key={pattern.pattern_id}
+                      onClick={() => setSelectedPlaybookPattern(pattern)}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                        isSelected
+                          ? "bg-slate-800/90 border-emerald-500/80 shadow-lg"
+                          : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-bold text-white text-sm">{pattern.name_ko}</div>
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded font-mono font-bold">
+                            {pattern.occurrences}회 시도
+                          </span>
+                          <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded font-mono">
+                            xG {pattern.total_xg.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-400 leading-relaxed mb-3">
+                        {pattern.description}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        시퀀스 단계: {pattern.sequences[0]?.length || 0}개 이벤트 연계
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "pressure" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard
+                  title="PPDA (수비 강도)"
+                  value={pressure?.ppda !== null && pressure?.ppda !== undefined ? pressure.ppda.toFixed(2) : "-"}
+                  subtitle="상대 패스당 수비 액션"
+                  badge="상대 진영 (x>=40)"
+                  badgeColor="rose"
+                />
+                <StatCard
+                  title="분당 압박 횟수"
+                  value={pressure?.pressures_per_min?.toFixed(2) || "0.0"}
+                  subtitle="분당 압박 빈도"
+                  badgeColor="amber"
+                />
+              </div>
+
+              {pressure?.pressure_traps && pressure.pressure_traps.length > 0 && (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-rose-400 uppercase">
+                    압박 트랩 핫스팟 (Pressing Trap Zones)
+                  </h4>
+                  <div className="space-y-2">
+                    {pressure.pressure_traps.map((trap, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800"
+                      >
+                        <div className="text-xs text-slate-200 font-medium">{trap.zone}</div>
+                        <div className="text-xs text-rose-400 font-mono font-bold">{trap.count}회 탈취 유도</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "timeline" && (
+            <div className="space-y-4">
+              <StatCard
+                title="15분 단위 전술 타임라인 슬라이스"
+                value={`${timeline?.length || 0}개 구간`}
+                subtitle="시간대별 점유율 및 수비 라인 변화"
+                badge="15min Intervals"
+                badgeColor="blue"
+              />
+
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {timeline?.map((sl) => (
+                  <div key={sl.slice_index} className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-white text-xs">{sl.label}</span>
+                      <span className="text-xs font-mono text-emerald-400 font-bold">
+                        점유율 {sl.possession_pct.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-400">
+                      <div>수비 라인: <span className="text-slate-200 font-mono">{sl.defensive_line_height.toFixed(1)}m</span></div>
+                      <div>패스 성공률: <span className="text-slate-200 font-mono">{sl.pass_accuracy.toFixed(1)}%</span></div>
+                      <div>압박: <span className="text-slate-200 font-mono">{sl.pressures}회</span></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -328,77 +565,6 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                   badgeColor="emerald"
                 />
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
-                  주요 패스 콤비네이션
-                </h4>
-                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                  {passes?.edges?.map((e, idx) => {
-                    const passerId = e.passer_id ?? e.source_id;
-                    const recipientId = e.recipient_id ?? e.target_id;
-                    const count = e.count ?? e.pass_count ?? 0;
-                    const progCount = e.progressive_count ?? 0;
-                    const src = passes.nodes.find((n) => n.player_id === passerId);
-                    const dst = passes.nodes.find((n) => n.player_id === recipientId);
-                    const srcName = src?.player_name ?? e.source_name ?? String(passerId);
-                    const dstName = dst?.player_name ?? e.target_name ?? String(recipientId);
-                    return (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80"
-                      >
-                        <span className="text-slate-200">
-                          {srcName.split(" ").pop()} → {dstName.split(" ").pop()}
-                        </span>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {count}회
-                          </span>
-                          {progCount > 0 && (
-                            <span className="text-[10px] text-indigo-400">
-                              (전진 {progCount})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "pressure" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard
-                  title="PPDA (수비 강도)"
-                  value={pressure?.ppda !== null ? pressure.ppda.toFixed(2) : "-"}
-                  subtitle="상대 패스당 수비 액션"
-                  badge="상대 진영 (x>=40)"
-                  badgeColor="rose"
-                />
-                <StatCard
-                  title="분당 압박 횟수"
-                  value={pressure?.pressure_per_min?.toFixed(2) || "0.0"}
-                  subtitle="분당 압박 빈도"
-                  badgeColor="amber"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard
-                  title="하이 프레스 횟수"
-                  value={`${pressure?.high_press_events || 0}회`}
-                  subtitle="상대 진영 압박"
-                  badgeColor="emerald"
-                />
-                <StatCard
-                  title="공격 진영 턴오버 강요"
-                  value={`${pressure?.turnovers_forced_att_third || 0}회`}
-                  subtitle="파이널 써드 탈취 유도"
-                  badgeColor="indigo"
-                />
-              </div>
             </div>
           )}
 
@@ -423,7 +589,6 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                       />
                     </div>
                   </div>
-
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-slate-400">미들 써드 (40~80m)</span>
@@ -438,7 +603,6 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                       />
                     </div>
                   </div>
-
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-slate-400">공격 써드 (80~120m)</span>
@@ -454,21 +618,6 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard
-                  title="전진 패스 비율"
-                  value={`${buildup?.progressive_pass_ratio?.toFixed(1) || 0}%`}
-                  subtitle="전진 기여 패스 비율"
-                  badgeColor="emerald"
-                />
-                <StatCard
-                  title="전진 캐리 비율"
-                  value={`${buildup?.progressive_carry_ratio?.toFixed(1) || 0}%`}
-                  subtitle="전진 기여 드리블 비율"
-                  badgeColor="blue"
-                />
               </div>
             </div>
           )}
@@ -487,28 +636,6 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
                   value={`${transitions?.fast_transitions_to_att_third ?? transitions?.fast_transitions ?? 0}회`}
                   subtitle="파이널 써드 도달 성공"
                   badgeColor="amber"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard
-                  title="평균 전환 소요 시간"
-                  value={
-                    typeof transitions?.avg_transition_sec === "number"
-                      ? `${transitions.avg_transition_sec.toFixed(2)}초`
-                      : "-"
-                  }
-                  subtitle="공격 써드 도달 소요 시간"
-                  badgeColor="indigo"
-                />
-                <StatCard
-                  title="평균 전환 속도"
-                  value={
-                    typeof transitions?.avg_transition_speed_mps === "number"
-                      ? `${transitions.avg_transition_speed_mps.toFixed(2)}m/s`
-                      : "-"
-                  }
-                  subtitle="공격 전개 속도"
-                  badgeColor="blue"
                 />
               </div>
             </div>
