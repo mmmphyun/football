@@ -114,6 +114,14 @@ export interface TimelineSlice {
     buildup: number;
     attacking: number;
   };
+  players?: Array<{
+    player_id: number;
+    player_name: string;
+    position?: string;
+    x: number;
+    y: number;
+    event_count?: number;
+  }>;
   key_events: Array<{
     type: string;
     minute: number;

@@ -20,6 +20,46 @@ function lerp(a: number, b: number, t: number): number {
 }
 
 /**
+ * 카메라 시야각 다각형(Visible Area Polygon)을 부드럽게 연속 보간(Morphing)합니다.
+ */
+function interpolatePolygon(
+  p1?: number[],
+  p2?: number[],
+  alpha: number = 0.5
+): number[] | undefined {
+  if (!p1 && !p2) return undefined;
+  if (!p1) return p2;
+  if (!p2) return p1;
+  if (p1.length === 0) return p2;
+  if (p2.length === 0) return p1;
+
+  // 꼭짓점 수가 동일한 경우 점별 1:1 선형 보간
+  if (p1.length === p2.length) {
+    const res: number[] = new Array(p1.length);
+    for (let i = 0; i < p1.length; i++) {
+      res[i] = lerp(p1[i], p2[i], alpha);
+    }
+    return res;
+  }
+
+  // 꼭짓점 수가 다른 경우: 인덱스 비례 리샘플링 보간
+  const count1 = p1.length / 2;
+  const count2 = p2.length / 2;
+  const targetCount = Math.max(count1, count2);
+  const res: number[] = new Array(targetCount * 2);
+
+  for (let i = 0; i < targetCount; i++) {
+    const idx1 = Math.min(Math.floor((i / targetCount) * count1), count1 - 1) * 2;
+    const idx2 = Math.min(Math.floor((i / targetCount) * count2), count2 - 1) * 2;
+
+    res[i * 2] = lerp(p1[idx1], p2[idx2], alpha);
+    res[i * 2 + 1] = lerp(p1[idx1 + 1], p2[idx2 + 1], alpha);
+  }
+
+  return res;
+}
+
+/**
  * 주어진 현재 시간(currentSec)에 해당하는 보간된 프레임 상태를 생성합니다.
  */
 export function interpolateFrames(
@@ -201,10 +241,17 @@ export function interpolateFrames(
     }
   }
 
+  // 3. 카메라 시야각 다각형 연속 보간
+  const interpolatedVisArea = interpolatePolygon(
+    f1.visible_area,
+    f2.visible_area,
+    clampedAlpha
+  );
+
   return {
     timestamp_sec: currentSec,
     ball_location: ballLoc,
-    visible_area: clampedAlpha < 0.5 ? f1.visible_area : f2.visible_area,
+    visible_area: interpolatedVisArea,
     players: interpolatedPlayers,
     passing_lanes: clampedAlpha < 0.5 ? f1.passing_lanes : f2.passing_lanes,
     description: clampedAlpha < 0.5 ? f1.description : f2.description,

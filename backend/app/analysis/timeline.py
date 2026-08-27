@@ -103,7 +103,44 @@ def compute_timeline_summary(
             "attacking": round((att_count / total_phase) * 100.0, 1),
         }
 
-        # 6. 구간 내 주요 이벤트 (골, 옐로/레드카드, 슛)
+        # 6. 구간 내 참여 선수 평균 포메이션 좌표 산출
+        player_coords: dict[int, list[tuple[float, float]]] = {}
+        player_info_map: dict[int, dict[str, Any]] = {}
+
+        for ev in team_slice_events:
+            p_obj = ev.get("player")
+            if not p_obj or not p_obj.get("id"):
+                continue
+            pid = p_obj["id"]
+            pname = p_obj.get("name", "Unknown")
+            pos_name = ev.get("position", {}).get("name", "Player")
+            loc = ev.get("location")
+            if loc and len(loc) >= 2:
+                player_coords.setdefault(pid, []).append((float(loc[0]), float(loc[1])))
+                if pid not in player_info_map:
+                    player_info_map[pid] = {
+                        "player_id": pid,
+                        "player_name": pname,
+                        "position": pos_name,
+                    }
+
+        slice_players: list[dict[str, Any]] = []
+        for pid, coords in player_coords.items():
+            avg_x = sum(c[0] for c in coords) / len(coords)
+            avg_y = sum(c[1] for c in coords) / len(coords)
+            info = player_info_map.get(pid, {})
+            slice_players.append(
+                {
+                    "player_id": pid,
+                    "player_name": info.get("player_name", "Unknown"),
+                    "position": info.get("position", "Player"),
+                    "x": round(avg_x, 2),
+                    "y": round(avg_y, 2),
+                    "event_count": len(coords),
+                }
+            )
+
+        # 7. 구간 내 주요 이벤트 (골, 옐로/레드카드, 슛)
         key_events = []
         for ev in slice_events:
             ev_type = ev.get("type", {}).get("name", "")
@@ -145,6 +182,7 @@ def compute_timeline_summary(
                 "defensive_line_height": avg_def_line,
                 "total_events": total_slice_events_count,
                 "phase_distribution": phase_dist,
+                "players": slice_players,
                 "key_events": key_events,
             }
         )
