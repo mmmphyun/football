@@ -812,6 +812,58 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 압박 {timelineSlice.pressures}회
               </text>
             </g>
+
+            {/* 타임라인 구간 선수 포메이션 마커 */}
+            {timelineSlice.players &&
+              timelineSlice.players.map((tp) => {
+                const [sx, sy] = toSvg(tp.x, tp.y);
+                return (
+                  <g
+                    key={`timeline-player-${tp.player_id}`}
+                    style={{
+                      transform: `translate(${sx}px, ${sy}px)`,
+                      transformBox: "fill-box",
+                      transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    }}
+                  >
+                    <circle
+                      r="16"
+                      fill="#0284c7"
+                      stroke="#ffffff"
+                      strokeWidth="2.5"
+                      className="drop-shadow-lg"
+                    />
+                    <text
+                      y="4"
+                      fill="#ffffff"
+                      fontSize="11"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {tp.position?.slice(0, 2) ?? "P"}
+                    </text>
+                    <rect
+                      x="-40"
+                      y="20"
+                      width="80"
+                      height="18"
+                      rx="4"
+                      fill="rgba(15, 23, 42, 0.9)"
+                      stroke="#0284c7"
+                      strokeWidth="1"
+                    />
+                    <text
+                      y="33"
+                      fill="#e0f2fe"
+                      fontSize="10"
+                      fontWeight="semibold"
+                      textAnchor="middle"
+                    >
+                      {tp.player_name.split(" ").pop()}
+                    </text>
+                  </g>
+                );
+              })}
           </g>
         )}
 
