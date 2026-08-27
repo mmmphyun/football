@@ -23,16 +23,34 @@ logger = logging.getLogger(__name__)
 def _extract_formation_anchors(
     summary_data: dict[str, Any],
 ) -> dict[int, dict[str, dict[int, tuple[float, float]]]]:
-    """분석 요약 결과에서 팀별 3대 국면(수비/빌드업/공격) 선수 평균 위치 앵커 맵을 추출합니다."""
+    """분석 요약 결과에서 팀별 UEFA 6대 서브 국면 및 기본 국면 선수 평균 위치 앵커 맵을 추출합니다."""
     anchors: dict[int, dict[str, dict[int, tuple[float, float]]]] = {}
     teams = summary_data.get("teams", {})
     for team_id_key, t_data in teams.items():
         team_id = int(team_id_key)
         formation = t_data.get("formation", {})
+        subphases = formation.get("subphases", {})
         team_phase_map: dict[str, dict[int, tuple[float, float]]] = {}
 
-        for phase in ("defensive", "buildup", "attacking", "overall"):
-            if phase in formation and isinstance(formation[phase], dict):
+        all_phases = [
+            "defensive",
+            "buildup",
+            "attacking",
+            "overall",
+            "progression",
+            "final_third",
+            "high_press",
+            "mid_block",
+            "low_block",
+        ]
+
+        for phase in all_phases:
+            p_list = []
+            if phase in subphases and isinstance(subphases[phase], dict):
+                p_list = (
+                    subphases[phase].get("players") or subphases[phase].get("all_players") or []
+                )
+            elif phase in formation and isinstance(formation[phase], dict):
                 p_list = (
                     formation[phase].get("players") or formation[phase].get("all_players") or []
                 )
