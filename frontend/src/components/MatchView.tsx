@@ -11,15 +11,12 @@ import { TacticalBoard } from "./TacticalBoard";
 import { StatCard } from "./StatCard";
 import {
   Activity,
-  ArrowRightLeft,
   BookOpen,
   Compass,
   Grid,
   Layers,
   Share2,
-  Shield,
   ShieldAlert,
-  Sword,
   TrendingUp,
   Zap,
 } from "lucide-react";
@@ -36,7 +33,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const [selectedTeamId, setSelectedTeamId] = useState<number>(
     homeTeamId ?? Number(Object.keys(summary.teams)[0])
   );
-  const [selectedPhase, setSelectedPhase] = useState<TacticalPhase>("buildup");
+  const [selectedPhase, setSelectedPhase] = useState<TacticalPhase>("progression");
   const [activeTab, setActiveTab] = useState<TacticalTab>("formation");
   const [selectedPlaybookPattern, setSelectedPlaybookPattern] =
     useState<PlaybookPattern | null>(null);
@@ -71,13 +68,41 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const { formation, zones, passes, pressure, buildup, transitions, playbook, timeline } =
     currentTeam;
 
-  // 3대 국면 데이터 추출
+  // 6대 서브 국면 데이터 추출 (subphases 우선 참조, 없을 시 기존 3대 국면 fallback)
+  const subphases = formation?.subphases;
   const phaseShape =
-    selectedPhase === "defensive"
-      ? formation?.defensive
-      : selectedPhase === "attacking"
+    (subphases && subphases[selectedPhase]) ||
+    (selectedPhase === "buildup"
+      ? formation?.buildup
+      : selectedPhase === "progression"
+      ? formation?.players_in_possession
+        ? {
+            formation: "3-2-4-1",
+            line_height: 48.0,
+            width: 52.0,
+            length: 32.0,
+            players: formation.players_in_possession,
+          }
+        : formation?.buildup
+      : selectedPhase === "final_third" || selectedPhase === "attacking"
       ? formation?.attacking
-      : formation?.buildup;
+      : selectedPhase === "high_press"
+      ? {
+          formation: "High Press",
+          line_height: 55.0,
+          width: 42.0,
+          length: 28.0,
+          players: formation?.players_out_of_possession || [],
+        }
+      : selectedPhase === "low_block"
+      ? {
+          formation: "5-4-1",
+          line_height: 22.0,
+          width: 38.0,
+          length: 20.0,
+          players: formation?.players_out_of_possession || [],
+        }
+      : formation?.defensive);
 
   const currentFormationName =
     phaseShape?.formation ||
@@ -151,60 +176,109 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
         </div>
       </div>
 
-      {/* 3대 국면(수비 ↔ 빌드업 ↔ 공격) 동적 모핑 전환 컨트롤 바 */}
+      {/* UEFA 6대 서브 국면 동적 포메이션 모핑 바 */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Layers className="w-5 h-5 text-emerald-400" />
             <div>
-              <div className="text-sm font-bold text-white">3대 국면 전술 모핑 (Tactical Shape Shift)</div>
-              <div className="text-xs text-slate-400">공 소유권 및 진영에 따른 실시간 대형 전환</div>
+              <div className="text-sm font-bold text-white">UEFA 6대 서브 국면 포메이션 모핑</div>
+              <div className="text-xs text-slate-400">볼 소유 3단계 및 볼 미소유 수비 3단계 실시간 대형 모핑</div>
             </div>
           </div>
 
-          <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800 space-x-1">
-            <button
-              onClick={() => {
-                setSelectedPhase("defensive");
-                setActiveTab("formation");
-              }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                selectedPhase === "defensive" && activeTab === "formation"
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              <span>수비 국면 대형</span>
-            </button>
-            <button
-              onClick={() => {
-                setSelectedPhase("buildup");
-                setActiveTab("formation");
-              }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                selectedPhase === "buildup" && activeTab === "formation"
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              <span>빌드업 국면 대형</span>
-            </button>
-            <button
-              onClick={() => {
-                setSelectedPhase("attacking");
-                setActiveTab("formation");
-              }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                selectedPhase === "attacking" && activeTab === "formation"
-                  ? "bg-rose-600 text-white shadow-lg shadow-rose-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Sword className="w-4 h-4" />
-              <span>공격 국면 대형</span>
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {/* 볼 소유 3단계 */}
+            <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase self-center px-1.5 hidden sm:inline">
+                볼 소유
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedPhase("buildup");
+                  setActiveTab("formation");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPhase === "buildup" && activeTab === "formation"
+                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                1. 후방 빌드업
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedPhase("progression");
+                  setActiveTab("formation");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPhase === "progression" && activeTab === "formation"
+                    ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                2. 중원 전개
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedPhase("final_third");
+                  setActiveTab("formation");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPhase === "final_third" && activeTab === "formation"
+                    ? "bg-rose-600 text-white shadow-lg shadow-rose-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                3. 기회 창출
+              </button>
+            </div>
+
+            {/* 볼 미소유 3단계 */}
+            <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
+              <span className="text-[10px] font-bold text-amber-400 uppercase self-center px-1.5 hidden sm:inline">
+                볼 미소유
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedPhase("high_press");
+                  setActiveTab("formation");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPhase === "high_press" && activeTab === "formation"
+                    ? "bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                4. 전방 압박
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedPhase("mid_block");
+                  setActiveTab("formation");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPhase === "mid_block" && activeTab === "formation"
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                5. 미들 블록
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedPhase("low_block");
+                  setActiveTab("formation");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedPhase === "low_block" && activeTab === "formation"
+                    ? "bg-blue-900 text-white shadow-lg shadow-blue-900/40"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                6. 로우 블록
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -436,10 +510,10 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           {activeTab === "playbook" && (
             <div className="space-y-4">
               <StatCard
-                title="시그니처 공격 패턴 TOP 3 플레이북"
+                title="5대 시그니처 전술 플레이북"
                 value={`${playbook?.length || 0}개 패턴`}
-                subtitle="반복 공격 전개 시퀀스 자동 분석"
-                badge="TOP 3 Playbook"
+                subtitle="학계 연구 기반 시그니처 공격 전개 시퀀스"
+                badge="5 Signature Patterns"
                 badgeColor="emerald"
               />
 

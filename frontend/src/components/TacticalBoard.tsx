@@ -1150,12 +1150,18 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             {/* 11명 선수 토큰 (위치 모핑 애니메이션) */}
             {activeFormationPlayers.map((fp) => {
               const [sx, sy] = toSvg(fp.x, fp.y);
-              const phaseColor =
-                selectedPhase === "defensive"
-                  ? "#2563eb"
-                  : selectedPhase === "attacking"
-                  ? "#dc2626"
-                  : "#059669";
+              const phaseColorMap: Record<string, string> = {
+                buildup: "#059669",
+                progression: "#0284c7",
+                final_third: "#dc2626",
+                attacking: "#dc2626",
+                high_press: "#ea580c",
+                mid_block: "#4f46e5",
+                defensive: "#4f46e5",
+                low_block: "#1e3a8a",
+                overall: "#0284c7",
+              };
+              const phaseColor = phaseColorMap[selectedPhase] || "#059669";
               return (
                 <g
                   key={`formation-player-${fp.player_id}`}

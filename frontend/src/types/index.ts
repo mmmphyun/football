@@ -49,6 +49,12 @@ export interface PhaseShape {
   all_players?: FormationPlayer[];
 }
 
+export interface SubPhaseShape extends PhaseShape {
+  name: string;
+  name_en: string;
+  category: "in_possession" | "out_of_possession";
+}
+
 export interface FormationSummary {
   formation?: string;
   formation_name?: string;
@@ -56,6 +62,15 @@ export interface FormationSummary {
   team_width?: number;
   team_center_x?: number;
   team_center_y?: number;
+  subphases?: {
+    buildup?: SubPhaseShape;
+    progression?: SubPhaseShape;
+    final_third?: SubPhaseShape;
+    high_press?: SubPhaseShape;
+    mid_block?: SubPhaseShape;
+    low_block?: SubPhaseShape;
+    [key: string]: SubPhaseShape | undefined;
+  };
   defensive?: PhaseShape;
   buildup?: PhaseShape;
   attacking?: PhaseShape;
@@ -372,5 +387,22 @@ export type TacticalTab =
   | "buildup"
   | "transitions";
 
-export type TacticalPhase = "defensive" | "buildup" | "attacking" | "overall";
+export type TacticalPhase =
+  | "defensive"
+  | "buildup"
+  | "attacking"
+  | "overall"
+  | "progression"
+  | "final_third"
+  | "high_press"
+  | "mid_block"
+  | "low_block";
+
+export type SubPhaseKey =
+  | "buildup"
+  | "progression"
+  | "final_third"
+  | "high_press"
+  | "mid_block"
+  | "low_block";
 
