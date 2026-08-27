@@ -68,22 +68,26 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const { formation, zones, passes, pressure, buildup, transitions, playbook, timeline } =
     currentTeam;
 
-  // 6대 서브 국면 데이터 추출 (subphases 우선 참조, 없을 시 기존 3대 국면 fallback)
+  // 6대 서브 국면 데이터 추출 (subphases 우선 참조, 없을 시 기존 3대 국면 기반 보정 fallback)
   const subphases = formation?.subphases;
+  const baseStarters =
+    formation?.starters ||
+    formation?.players?.filter((p) => p.is_starter) ||
+    formation?.players?.slice(0, 11) ||
+    [];
+
   const phaseShape =
     (subphases && subphases[selectedPhase]) ||
     (selectedPhase === "buildup"
       ? formation?.buildup
       : selectedPhase === "progression"
-      ? formation?.players_in_possession
-        ? {
-            formation: "3-2-4-1",
-            line_height: 48.0,
-            width: 52.0,
-            length: 32.0,
-            players: formation.players_in_possession,
-          }
-        : formation?.buildup
+      ? {
+          formation: "3-2-4-1",
+          line_height: 48.0,
+          width: 52.0,
+          length: 32.0,
+          players: formation?.players_in_possession?.slice(0, 11) || baseStarters,
+        }
       : selectedPhase === "final_third" || selectedPhase === "attacking"
       ? formation?.attacking
       : selectedPhase === "high_press"
@@ -92,7 +96,11 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           line_height: 55.0,
           width: 42.0,
           length: 28.0,
-          players: formation?.players_out_of_possession || [],
+          players: baseStarters.map((p) => ({
+            ...p,
+            x: Math.min(115.0, p.x + 12.0),
+            y: 40.0 + (p.y - 40.0) * 0.85,
+          })),
         }
       : selectedPhase === "low_block"
       ? {
@@ -100,7 +108,11 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           line_height: 22.0,
           width: 38.0,
           length: 20.0,
-          players: formation?.players_out_of_possession || [],
+          players: baseStarters.map((p) => ({
+            ...p,
+            x: Math.max(5.0, p.x - 14.0),
+            y: 40.0 + (p.y - 40.0) * 0.75,
+          })),
         }
       : formation?.defensive);
 
@@ -110,12 +122,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
     formation?.formation ||
     "4-3-3";
 
-  const starters =
-    phaseShape?.players ||
-    formation?.starters ||
-    formation?.players?.filter((p) => p.is_starter) ||
-    formation?.players ||
-    [];
+  const starters = (phaseShape?.players || baseStarters).slice(0, 11);
 
   const substitutes =
     formation?.substitutes ||

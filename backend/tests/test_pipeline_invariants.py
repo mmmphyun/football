@@ -24,6 +24,12 @@ def test_match_summary_invariants(
         assert "defensive" in form and "buildup" in form and "attacking" in form
         assert "subphases" in form
 
+        # 선발 11명 정원 엄수 검증
+        assert len(form.get("players", [])) <= 11
+        assert len(form.get("players_in_possession", [])) <= 11
+        assert len(form.get("players_out_of_possession", [])) <= 11
+
+        subphases = form["subphases"]
         for sp_name in (
             "buildup",
             "progression",
@@ -32,18 +38,37 @@ def test_match_summary_invariants(
             "mid_block",
             "low_block",
         ):
-            sp_data = form["subphases"][sp_name]
+            sp_data = subphases[sp_name]
             assert "line_height" in sp_data and 10.0 <= sp_data["line_height"] <= 90.0
             assert "width" in sp_data and sp_data["width"] > 0
             assert "length" in sp_data and sp_data["length"] > 0
-            assert "players" in sp_data and len(sp_data["players"]) > 0
+            assert "players" in sp_data
+            # 국면별 선수 수는 11명을 초과할 수 없음
+            assert len(sp_data["players"]) <= 11
+            for p in sp_data["players"]:
+                assert 0.0 <= p["x"] <= 120.0
+                assert 0.0 <= p["y"] <= 80.0
+
+        # 볼 미소유 3단계 라인 높이 물리적 변위 검증 (전방 압박 > 미들 블록 > 로우 블록)
+        assert (
+            subphases["high_press"]["line_height"]
+            > subphases["mid_block"]["line_height"]
+            > subphases["low_block"]["line_height"]
+        )
+
+        # 볼 소유 3단계 라인 높이 물리적 변위 검증 (기회 창출 > 중원 전개 > 후방 빌드업)
+        assert (
+            subphases["final_third"]["line_height"]
+            > subphases["progression"]["line_height"]
+            > subphases["buildup"]["line_height"]
+        )
 
         for phase in ("defensive", "buildup", "attacking"):
             p_data = form[phase]
             assert "line_height" in p_data and 10.0 <= p_data["line_height"] <= 90.0
             assert "width" in p_data and p_data["width"] > 0
             assert "length" in p_data and p_data["length"] > 0
-            assert "players" in p_data and len(p_data["players"]) > 0
+            assert "players" in p_data and len(p_data["players"]) <= 11
             for p in p_data["players"]:
                 assert 0.0 <= p["x"] <= 120.0
                 assert 0.0 <= p["y"] <= 80.0
