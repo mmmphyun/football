@@ -19,12 +19,14 @@ from app.analysis.formation import (
     get_position_anchor,
 )
 from app.analysis.passes import compute_pass_network
+from app.analysis.playbook import compute_playbook_summary
 from app.analysis.predict import (
     calculate_velocity,
     extrapolate_frame_players,
     extrapolate_player_position,
 )
 from app.analysis.pressure import compute_pressure_summary
+from app.analysis.timeline import compute_timeline_summary
 from app.analysis.transitions import compute_transitions_summary
 from app.analysis.zones import compute_zones_summary
 from app.config import (
@@ -118,13 +120,25 @@ class TestFormationAnalysis:
         sample_events: list[dict[str, Any]],
         sample_lineups: list[dict[str, Any]],
     ) -> None:
-        """팀 포메이션 및 선수 위치 산출 검증."""
+        """팀 포메이션 및 3대 국면(수비/빌드업/공격) 선수 위치 산출 검증."""
         summary_ukr = compute_formation_summary(sample_events, sample_lineups, team_id=911)
         assert summary_ukr["team_id"] == 911
         assert summary_ukr["formation"] == "433"
         assert len(summary_ukr["players_overall"]) > 0
         assert summary_ukr["team_length"] > 0
         assert summary_ukr["team_width"] > 0
+
+        # 3대 국면 검증
+        assert "defensive" in summary_ukr
+        assert "buildup" in summary_ukr
+        assert "attacking" in summary_ukr
+
+        assert summary_ukr["defensive"]["line_height"] > 0
+        assert summary_ukr["buildup"]["line_height"] > 0
+        assert summary_ukr["attacking"]["line_height"] > 0
+        assert len(summary_ukr["defensive"]["players"]) > 0
+        assert len(summary_ukr["buildup"]["players"]) > 0
+        assert len(summary_ukr["attacking"]["players"]) > 0
 
         # Zinchenko (3575)의 위치 데이터 포함 여부
         zinchenko = next(p for p in summary_ukr["players_overall"] if p["player_id"] == 3575)
@@ -200,19 +214,60 @@ class TestPassesAnalysis:
 
 
 class TestPressureAnalysis:
-    """압박 강도 및 PPDA 분석 테스트."""
+    """압박 강도, PPDA 및 압박 트랩 핫스팟 분석 테스트."""
 
     def test_compute_pressure_summary(
         self,
         sample_events: list[dict[str, Any]],
     ) -> None:
-        """상대 진영 x>=40 기준 PPDA 및 분당 압박 횟수 검증."""
+        """상대 진영 x>=40 기준 PPDA, 분당 압박 횟수 및 압박 트랩 검증."""
         res_mkd = compute_pressure_summary(events=sample_events, team_id=2358)
         assert res_mkd["team_id"] == 2358
         assert res_mkd["total_pressures"] >= 1
         assert res_mkd["high_press_defensive_actions"] >= 1
         assert res_mkd["ppda"] >= 0.0
         assert res_mkd["pressures_per_min"] >= 0.0
+        assert "pressure_traps" in res_mkd
+        assert len(res_mkd["pressure_traps"]) > 0
+
+
+class TestPlaybookAnalysis:
+    """시그니처 공격 패턴 TOP 3 플레이북 분석 테스트."""
+
+    def test_compute_playbook_summary(
+        self,
+        sample_events: list[dict[str, Any]],
+    ) -> None:
+        """시그니처 공격 패턴 TOP 3 추출 및 시퀀스 무결성 검증."""
+        playbook = compute_playbook_summary(events=sample_events, team_id=911)
+        assert len(playbook) == 3
+        for item in playbook:
+            assert "pattern_id" in item
+            assert "name" in item
+            assert "name_ko" in item
+            assert "occurrences" in item
+            assert "total_xg" in item
+            assert "sequences" in item
+            assert len(item["sequences"]) > 0
+
+
+class TestTimelineAnalysis:
+    """시간대별 전술 타임라인 분석 테스트."""
+
+    def test_compute_timeline_summary(
+        self,
+        sample_events: list[dict[str, Any]],
+    ) -> None:
+        """15분 단위 전술 슬라이스 및 지표 산출 검증."""
+        timeline = compute_timeline_summary(events=sample_events, team_id=911, interval_min=15)
+        assert len(timeline) >= 6
+        for sl in timeline:
+            assert "minute_start" in sl
+            assert "minute_end" in sl
+            assert "possession_pct" in sl
+            assert "pass_accuracy" in sl
+            assert "defensive_line_height" in sl
+            assert "phase_distribution" in sl
 
 
 class TestBuildupAnalysis:
