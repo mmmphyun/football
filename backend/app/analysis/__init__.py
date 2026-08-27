@@ -1,7 +1,7 @@
 """전술 분석 엔진(Analysis Engine) 패키지.
 
-8종 전술 분석 모듈(Common, Formation, Zones, Passes, Pressure, Buildup, Transitions, Predict)을
-통합 관리하고 경기 전체 분석 엔트리포인트를 제공합니다.
+3대 국면 포메이션, 시그니처 플레이북, 압박 트랩, 전술 타임라인, 패스 네트워크,
+점유 구역 및 공수 전환 등 10종 인터랙티브 전술 분석 모듈을 통합 관리합니다.
 """
 
 from typing import Any
@@ -18,12 +18,14 @@ from app.analysis.common import (
 )
 from app.analysis.formation import POSITION_ANCHORS, compute_formation_summary, get_position_anchor
 from app.analysis.passes import compute_pass_network
+from app.analysis.playbook import compute_playbook_summary
 from app.analysis.predict import (
     calculate_velocity,
     extrapolate_frame_players,
     extrapolate_player_position,
 )
 from app.analysis.pressure import compute_pressure_summary
+from app.analysis.timeline import compute_timeline_summary
 from app.analysis.transitions import compute_transitions_summary
 from app.analysis.zones import compute_zones_summary
 
@@ -35,7 +37,9 @@ __all__ = [
     "compute_buildup_summary",
     "compute_formation_summary",
     "compute_pass_network",
+    "compute_playbook_summary",
     "compute_pressure_summary",
+    "compute_timeline_summary",
     "compute_transitions_summary",
     "compute_zones_summary",
     "event_time",
@@ -55,7 +59,7 @@ def analyze_match(
     lineups: list[dict[str, Any]],
     three_sixty_frames: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """경기 전체 데이터(이벤트, 라인업, 360)에 대해 8종 전술 지표를 양 팀별로 산출하여 통합 요약을 생성합니다."""
+    """경기 전체 데이터(이벤트, 라인업, 360)에 대해 전술 지표를 양 팀별로 산출하여 통합 요약을 생성합니다."""
     team_ids = get_team_ids(events)
     lineup_maps = build_lineup_maps(lineups)
     match_duration = get_match_duration_min(events)
@@ -68,6 +72,8 @@ def analyze_match(
         zones_data = compute_zones_summary(events, t_id, three_sixty_frames)
         passes_data = compute_pass_network(events, lineups, t_id)
         pressure_data = compute_pressure_summary(events, t_id)
+        playbook_data = compute_playbook_summary(events, t_id)
+        timeline_data = compute_timeline_summary(events, t_id)
         buildup_data = compute_buildup_summary(events, t_id)
         transitions_data = compute_transitions_summary(events, t_id)
 
@@ -78,6 +84,8 @@ def analyze_match(
             "zones": zones_data,
             "passes": passes_data,
             "pressure": pressure_data,
+            "playbook": playbook_data,
+            "timeline": timeline_data,
             "buildup": buildup_data,
             "transitions": transitions_data,
         }

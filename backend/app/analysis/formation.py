@@ -8,6 +8,7 @@ from collections import defaultdict
 from typing import Any
 
 from app.analysis.common import build_lineup_maps
+from app.config import HALF_PITCH_X
 
 # StatsBomb 포지션 ID 기준 기본 앵커 좌표 (x: 0~120, y: 0~80)
 POSITION_ANCHORS: dict[int, tuple[float, float]] = {
@@ -38,6 +39,10 @@ POSITION_ANCHORS: dict[int, tuple[float, float]] = {
     25: (90.0, 40.0),  # Secondary Striker
 }
 
+DEFENDER_POSITION_IDS = {2, 3, 4, 5, 6, 7, 8}
+MIDFIELDER_POSITION_IDS = {9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20}
+FORWARD_POSITION_IDS = {17, 21, 22, 23, 24, 25}
+
 
 def get_position_anchor(position_id: int | None) -> tuple[float, float]:
     """포지션 ID에 대응하는 표준 앵커 좌표를 반환합니다."""
@@ -46,12 +51,40 @@ def get_position_anchor(position_id: int | None) -> tuple[float, float]:
     return (60.0, 40.0)
 
 
+def _infer_shape_string(players_list: list[dict[str, Any]]) -> str:
+    """선수들의 x 좌표 분포를 기반으로 3~4선 포메이션 문자열(예: 4-4-2, 3-2-4-1 등)을 추론합니다."""
+    field_players = [p for p in players_list if p.get("position_id") != 1 and p.get("is_starter")]
+    if len(field_players) < 8:
+        field_players = [p for p in players_list if p.get("position_id") != 1][:10]
+
+    if not field_players:
+        return "4-3-3"
+
+    sorted_p = sorted(field_players, key=lambda p: p["x"])
+    # X 좌표 간격 기반 라인 군집화
+    lines: list[list[dict[str, Any]]] = []
+    current_line = [sorted_p[0]]
+
+    for p in sorted_p[1:]:
+        if p["x"] - current_line[-1]["x"] > 12.0:
+            lines.append(current_line)
+            current_line = [p]
+        else:
+            current_line.append(p)
+    lines.append(current_line)
+
+    line_counts = [len(line) for line in lines]
+    if sum(line_counts) == len(field_players) and len(line_counts) in (3, 4, 5):
+        return "-".join(str(c) for c in line_counts)
+    return "4-3-3"
+
+
 def compute_formation_summary(
     events: list[dict[str, Any]],
     lineups: list[dict[str, Any]],
     team_id: int,
 ) -> dict[str, Any]:
-    """팀의 포메이션, 볼 소유/미소유별 선수 평균 위치 및 컴팩트니스 지표를 산출합니다."""
+    """팀의 3대 국면(수비/빌드업/공격)별 대형, 선수 평균 위치 및 컴팩트니스 지표를 산출합니다."""
     lineup_maps = build_lineup_maps(lineups)
     team_meta = lineup_maps.get(team_id, {"players": {}, "starting_xi": []})
     players_meta = team_meta.get("players", {})
@@ -70,9 +103,10 @@ def compute_formation_summary(
                 formation_name = str(formation_num)
             break
 
-    # 볼 소유/미소유별 위치 데이터 수집
-    possession_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
-    out_of_possession_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    # 3대 국면별 위치 데이터 수집 버킷
+    defensive_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    buildup_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    attacking_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
     all_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
 
     for ev in events:
@@ -92,14 +126,31 @@ def compute_formation_summary(
         all_locations[p_id].append((x, y))
 
         poss_team_id = ev.get("possession_team", {}).get("id")
-        if poss_team_id == team_id:
-            possession_locations[p_id].append((x, y))
-        else:
-            out_of_possession_locations[p_id].append((x, y))
+        type_name = ev.get("type", {}).get("name", "")
 
-    def _calc_player_avg(
+        # 1. 수비 국면: 상대팀 소유 또는 우리팀 수비 액션
+        if poss_team_id != team_id or type_name in {
+            "Pressure",
+            "Tackle",
+            "Interception",
+            "Block",
+            "Clearance",
+            "Duel",
+            "Foul Committed",
+        }:
+            defensive_locations[p_id].append((x, y))
+        else:
+            # 2 & 3. 우리팀 볼 소유
+            if x < HALF_PITCH_X:
+                buildup_locations[p_id].append((x, y))
+            else:
+                attacking_locations[p_id].append((x, y))
+
+    def _calc_player_metrics(
         loc_map: dict[int, list[tuple[float, float]]],
-    ) -> list[dict[str, Any]]:
+        default_x_shift: float = 0.0,
+    ) -> tuple[list[dict[str, Any]], float, float, float]:
+        """선수별 평균 좌표, 라인 높이, 너비, 길이를 산출합니다."""
         result: list[dict[str, Any]] = []
         for p_id, p_info in players_meta.items():
             locs = loc_map.get(p_id, [])
@@ -107,10 +158,12 @@ def compute_formation_summary(
             anchor = get_position_anchor(p_info.get("primary_position_id"))
 
             if count > 0:
-                avg_x = sum(x for x, _ in locs) / count
-                avg_y = sum(y for _, y in locs) / count
+                avg_x = sum(pt[0] for pt in locs) / count
+                avg_y = sum(pt[1] for pt in locs) / count
             else:
-                avg_x, avg_y = anchor
+                # 데이터가 없는 경우 앵커 좌표에 오프셋 적용
+                avg_x = max(2.0, min(118.0, anchor[0] + default_x_shift))
+                avg_y = anchor[1]
 
             result.append(
                 {
@@ -127,50 +180,95 @@ def compute_formation_summary(
                     "anchor_y": anchor[1],
                 }
             )
-        return result
 
-    players_overall = _calc_player_avg(all_locations)
-    players_in_poss = _calc_player_avg(possession_locations)
-    players_out_poss = _calc_player_avg(out_of_possession_locations)
+        # 필드 플레이어(GK 제외) 선발 선수들 위치 기준 지표 산출
+        field_starters = [p for p in result if p["is_starter"] and p.get("position_id") != 1]
+        if not field_starters:
+            field_starters = [p for p in result if p.get("position_id") != 1][:10]
 
-    # 선발 선수 기준 평균 너비 및 길이 산출 (컴팩트니스)
-    starter_locs = [
-        (p["x"], p["y"])
-        for p in players_overall
-        if p["is_starter"] and p.get("position_id") != 1  # GK 제외
-    ]
+        if field_starters:
+            xs = [p["x"] for p in field_starters]
+            ys = [p["y"] for p in field_starters]
+            length = round(max(xs) - min(xs), 2)
+            width = round(max(ys) - min(ys), 2)
 
-    if len(starter_locs) >= 4:
-        xs = [pt[0] for pt in starter_locs]
-        ys = [pt[1] for pt in starter_locs]
-        team_length = round(max(xs) - min(xs), 2)
-        team_width = round(max(ys) - min(ys), 2)
-        team_center_x = round(sum(xs) / len(xs), 2)
-        team_center_y = round(sum(ys) / len(ys), 2)
-    else:
-        team_length = 35.0
-        team_width = 45.0
-        team_center_x = 55.0
-        team_center_y = 40.0
+            # 수비 라인 높이: 수비수 포지션 선수들의 평균 x, 없으면 하위 30% x 평균
+            defenders = [p for p in field_starters if p.get("position_id") in DEFENDER_POSITION_IDS]
+            if defenders:
+                line_height = round(sum(p["x"] for p in defenders) / len(defenders), 2)
+            else:
+                sorted_xs = sorted(xs)
+                line_height = round(sum(sorted_xs[:3]) / min(3, len(sorted_xs)), 2)
+        else:
+            length = 35.0
+            width = 45.0
+            line_height = 35.0
 
-    # 선발 11명 및 교체 출전 선수 분리
-    starters = [p for p in players_overall if p["is_starter"]]
-    substitutes = [p for p in players_overall if not p["is_starter"] and p["event_count"] > 0]
+        return result, line_height, width, length
+
+    # 3대 국면 계산
+    def_players, def_line, def_w, def_l = _calc_player_metrics(
+        defensive_locations, default_x_shift=-10.0
+    )
+    bld_players, bld_line, bld_w, bld_l = _calc_player_metrics(
+        buildup_locations, default_x_shift=0.0
+    )
+    att_players, att_line, att_w, att_l = _calc_player_metrics(
+        attacking_locations, default_x_shift=15.0
+    )
+
+    # 전반적 지표 계산
+    overall_players, overall_line, overall_w, overall_l = _calc_player_metrics(all_locations)
+
+    starters = [p for p in overall_players if p["is_starter"]]
+    substitutes = [p for p in overall_players if not p["is_starter"] and p["event_count"] > 0]
     all_played = starters + substitutes
+
+    def_shape = _infer_shape_string(def_players)
+    bld_shape = _infer_shape_string(bld_players)
+    att_shape = _infer_shape_string(att_players)
 
     return {
         "team_id": team_id,
         "formation": formation_name,
         "formation_name": formation_name,
-        "team_length": team_length,
-        "team_width": team_width,
-        "team_center_x": team_center_x,
-        "team_center_y": team_center_y,
-        "players": starters if starters else players_overall,
+        "team_length": overall_l,
+        "team_width": overall_w,
+        "team_center_x": round(
+            sum(p["x"] for p in (starters or overall_players)) / len(starters or overall_players), 2
+        ),
+        "team_center_y": round(
+            sum(p["y"] for p in (starters or overall_players)) / len(starters or overall_players), 2
+        ),
+        "defensive": {
+            "formation": def_shape,
+            "line_height": def_line,
+            "width": def_w,
+            "length": def_l,
+            "players": [p for p in def_players if p["is_starter"]] or def_players[:11],
+            "all_players": def_players,
+        },
+        "buildup": {
+            "formation": bld_shape,
+            "line_height": bld_line,
+            "width": bld_w,
+            "length": bld_l,
+            "players": [p for p in bld_players if p["is_starter"]] or bld_players[:11],
+            "all_players": bld_players,
+        },
+        "attacking": {
+            "formation": att_shape,
+            "line_height": att_line,
+            "width": att_w,
+            "length": att_l,
+            "players": [p for p in att_players if p["is_starter"]] or att_players[:11],
+            "all_players": att_players,
+        },
+        "players": starters if starters else overall_players,
         "starters": starters,
         "substitutes": substitutes,
         "all_played_players": all_played,
-        "players_overall": players_overall,
-        "players_in_possession": players_in_poss,
-        "players_out_of_possession": players_out_poss,
+        "players_overall": overall_players,
+        "players_in_possession": bld_players,
+        "players_out_of_possession": def_players,
     }
