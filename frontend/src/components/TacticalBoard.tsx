@@ -9,6 +9,7 @@ import {
   PlaybookPattern,
   PressureTrap,
   TacticalPhase,
+  TimelineSlice,
   ZoneCell,
 } from "../types";
 import {
@@ -56,6 +57,9 @@ export interface TacticalBoardProps {
     is_fast: boolean;
     reached_final_third: boolean;
   }>;
+  // 15분 전술 타임라인
+  showTimeline?: boolean;
+  timelineSlice?: TimelineSlice | null;
   // 하이라이트/프레임 렌더링 & 360 패스길
   players?: FramePlayer[];
   ballLocation?: [number, number];
@@ -97,6 +101,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   ppdaValue,
   showTransitions = false,
   transitionSequences,
+  showTimeline = false,
+  timelineSlice,
   players,
   ballLocation,
   visibleArea,
@@ -708,6 +714,102 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </text>
               <text x="20" y="70" fill="#94a3b8" fontSize="10">
                 * 원: 턴오버 발생 지점 | 선: 공격 전개 도달 경로
+              </text>
+            </g>
+          </g>
+        )}
+
+        {/* 2-4. 15분 전술 타임라인 오버레이 */}
+        {showTimeline && timelineSlice && (
+          <g>
+            {/* 수비 라인 높이 표시선 */}
+            {(() => {
+              const [lx] = toSvg(timelineSlice.defensive_line_height, 0);
+              return (
+                <g>
+                  <line
+                    x1={lx}
+                    y1={pitchY}
+                    x2={lx}
+                    y2={pitchY2}
+                    stroke="#38bdf8"
+                    strokeWidth="3"
+                    strokeDasharray="8 4"
+                    style={{ transition: "all 0.5s ease" }}
+                  />
+                  <rect
+                    x={lx + 6}
+                    y={pitchY + 12}
+                    width="150"
+                    height="28"
+                    rx="6"
+                    fill="rgba(15, 23, 42, 0.92)"
+                    stroke="#38bdf8"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={lx + 81}
+                    y={pitchY + 31}
+                    fill="#7dd3fc"
+                    fontSize="13"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    수비 라인: {timelineSlice.defensive_line_height.toFixed(1)}m
+                  </text>
+                </g>
+              );
+            })()}
+
+            {/* 타임라인 구간 정보 배너 (상단 중앙) */}
+            <g transform={`translate(${centerSpotX - 160}, ${pitchY + 15})`}>
+              <rect
+                width="320"
+                height="65"
+                rx="10"
+                fill="rgba(15, 23, 42, 0.95)"
+                stroke="#334155"
+                strokeWidth="1.5"
+                className="drop-shadow-xl"
+              />
+              <text
+                x="160"
+                y="25"
+                fill="#ffffff"
+                fontSize="14"
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                {timelineSlice.label} 전술 요약
+              </text>
+              <text
+                x="60"
+                y="48"
+                fill="#34d399"
+                fontSize="12"
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                점유율 {timelineSlice.possession_pct.toFixed(1)}%
+              </text>
+              <text
+                x="160"
+                y="48"
+                fill="#94a3b8"
+                fontSize="12"
+                textAnchor="middle"
+              >
+                패스성공 {timelineSlice.pass_accuracy.toFixed(1)}%
+              </text>
+              <text
+                x="260"
+                y="48"
+                fill="#f59e0b"
+                fontSize="12"
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                압박 {timelineSlice.pressures}회
               </text>
             </g>
           </g>
