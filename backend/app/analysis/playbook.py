@@ -52,9 +52,7 @@ def _classify_attack_sequence(
                 if 25.0 <= sy <= 55.0 and 25.0 <= ey <= 55.0 and (ex - sx) >= 18.0 and ex >= 90.0:
                     has_central_penetration = True
 
-    if has_cutback or any(
-        (loc[1] <= 18.0 or loc[1] >= 62.0) and loc[0] >= 85.0 for loc in locs
-    ):
+    if has_cutback or any((loc[1] <= 18.0 or loc[1] >= 62.0) and loc[0] >= 85.0 for loc in locs):
         return (
             "side_overload_cutback",
             "Side Overload & Cutback",
@@ -173,7 +171,11 @@ def compute_playbook_summary(
 
                 if type_name == "Pass":
                     end_loc = ev.get("pass", {}).get("end_location")
-                    ex, ey = (float(end_loc[0]), float(end_loc[1])) if end_loc and len(end_loc) >= 2 else (sx, sy)
+                    ex, ey = (
+                        (float(end_loc[0]), float(end_loc[1]))
+                        if end_loc and len(end_loc) >= 2
+                        else (sx, sy)
+                    )
                     seq_event_draws.append(
                         {
                             "type": "Pass",
@@ -188,7 +190,11 @@ def compute_playbook_summary(
                     )
                 elif type_name == "Carry":
                     end_loc = ev.get("carry", {}).get("end_location")
-                    ex, ey = (float(end_loc[0]), float(end_loc[1])) if end_loc and len(end_loc) >= 2 else (sx, sy)
+                    ex, ey = (
+                        (float(end_loc[0]), float(end_loc[1]))
+                        if end_loc and len(end_loc) >= 2
+                        else (sx, sy)
+                    )
                     seq_event_draws.append(
                         {
                             "type": "Carry",
@@ -203,7 +209,11 @@ def compute_playbook_summary(
                     )
                 elif type_name == "Shot":
                     end_loc = ev.get("shot", {}).get("end_location")
-                    ex, ey = (float(end_loc[0]), float(end_loc[1])) if end_loc and len(end_loc) >= 2 else (120.0, 40.0)
+                    ex, ey = (
+                        (float(end_loc[0]), float(end_loc[1]))
+                        if end_loc and len(end_loc) >= 2
+                        else (120.0, 40.0)
+                    )
                     seq_event_draws.append(
                         {
                             "type": "Shot",
@@ -213,7 +223,9 @@ def compute_playbook_summary(
                             "end_y": round(ey, 1),
                             "player_name": p_name,
                             "player_id": p_id_val,
-                            "xg": round(float(ev.get("shot", {}).get("statsbomb_xg", 0.0) or 0.0), 3),
+                            "xg": round(
+                                float(ev.get("shot", {}).get("statsbomb_xg", 0.0) or 0.0), 3
+                            ),
                             "outcome": ev.get("shot", {}).get("outcome", {}).get("name", "Unknown"),
                         }
                     )
@@ -229,22 +241,102 @@ def compute_playbook_summary(
     for p in results:
         if not p["sequences"]:
             if p["pattern_id"] == "side_overload_cutback":
-                p["sequences"] = [[
-                    {"type": "Pass", "start_x": 65.0, "start_y": 70.0, "end_x": 95.0, "end_y": 72.0, "player_name": "Right Winger", "completed": True},
-                    {"type": "Pass", "start_x": 95.0, "start_y": 72.0, "end_x": 105.0, "end_y": 42.0, "player_name": "Right Back", "completed": True},
-                    {"type": "Shot", "start_x": 105.0, "start_y": 42.0, "end_x": 120.0, "end_y": 40.0, "player_name": "Striker", "xg": 0.35, "outcome": "Saved"},
-                ]]
+                p["sequences"] = [
+                    [
+                        {
+                            "type": "Pass",
+                            "start_x": 65.0,
+                            "start_y": 70.0,
+                            "end_x": 95.0,
+                            "end_y": 72.0,
+                            "player_name": "Right Winger",
+                            "completed": True,
+                        },
+                        {
+                            "type": "Pass",
+                            "start_x": 95.0,
+                            "start_y": 72.0,
+                            "end_x": 105.0,
+                            "end_y": 42.0,
+                            "player_name": "Right Back",
+                            "completed": True,
+                        },
+                        {
+                            "type": "Shot",
+                            "start_x": 105.0,
+                            "start_y": 42.0,
+                            "end_x": 120.0,
+                            "end_y": 40.0,
+                            "player_name": "Striker",
+                            "xg": 0.35,
+                            "outcome": "Saved",
+                        },
+                    ]
+                ]
             elif p["pattern_id"] == "inverted_switch":
-                p["sequences"] = [[
-                    {"type": "Pass", "start_x": 45.0, "start_y": 15.0, "end_x": 55.0, "end_y": 38.0, "player_name": "Inverted Left Back", "completed": True},
-                    {"type": "Pass", "start_x": 55.0, "start_y": 38.0, "end_x": 75.0, "end_y": 68.0, "player_name": "Midfielder", "completed": True},
-                    {"type": "Carry", "start_x": 75.0, "start_y": 68.0, "end_x": 92.0, "end_y": 65.0, "player_name": "Right Winger", "completed": True},
-                ]]
+                p["sequences"] = [
+                    [
+                        {
+                            "type": "Pass",
+                            "start_x": 45.0,
+                            "start_y": 15.0,
+                            "end_x": 55.0,
+                            "end_y": 38.0,
+                            "player_name": "Inverted Left Back",
+                            "completed": True,
+                        },
+                        {
+                            "type": "Pass",
+                            "start_x": 55.0,
+                            "start_y": 38.0,
+                            "end_x": 75.0,
+                            "end_y": 68.0,
+                            "player_name": "Midfielder",
+                            "completed": True,
+                        },
+                        {
+                            "type": "Carry",
+                            "start_x": 75.0,
+                            "start_y": 68.0,
+                            "end_x": 92.0,
+                            "end_y": 65.0,
+                            "player_name": "Right Winger",
+                            "completed": True,
+                        },
+                    ]
+                ]
             elif p["pattern_id"] == "central_penetration":
-                p["sequences"] = [[
-                    {"type": "Pass", "start_x": 50.0, "start_y": 40.0, "end_x": 75.0, "end_y": 42.0, "player_name": "Playmaker", "completed": True},
-                    {"type": "Pass", "start_x": 75.0, "start_y": 42.0, "end_x": 102.0, "end_y": 38.0, "player_name": "Attacking Midfielder", "completed": True},
-                    {"type": "Shot", "start_x": 102.0, "start_y": 38.0, "end_x": 120.0, "end_y": 39.0, "player_name": "Striker", "xg": 0.42, "outcome": "Goal"},
-                ]]
+                p["sequences"] = [
+                    [
+                        {
+                            "type": "Pass",
+                            "start_x": 50.0,
+                            "start_y": 40.0,
+                            "end_x": 75.0,
+                            "end_y": 42.0,
+                            "player_name": "Playmaker",
+                            "completed": True,
+                        },
+                        {
+                            "type": "Pass",
+                            "start_x": 75.0,
+                            "start_y": 42.0,
+                            "end_x": 102.0,
+                            "end_y": 38.0,
+                            "player_name": "Attacking Midfielder",
+                            "completed": True,
+                        },
+                        {
+                            "type": "Shot",
+                            "start_x": 102.0,
+                            "start_y": 38.0,
+                            "end_x": 120.0,
+                            "end_y": 39.0,
+                            "player_name": "Striker",
+                            "xg": 0.42,
+                            "outcome": "Goal",
+                        },
+                    ]
+                ]
 
     return results

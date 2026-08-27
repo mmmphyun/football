@@ -176,7 +176,9 @@ def compute_pressure_summary(
             trap_clusters[zone_name]["ys"].append(trap_y)
 
     pressure_traps: list[dict[str, Any]] = []
-    for zone_name, info in sorted(trap_clusters.items(), key=lambda item: item[1]["count"], reverse=True):
+    for zone_name, info in sorted(
+        trap_clusters.items(), key=lambda item: item[1]["count"], reverse=True
+    ):
         avg_x = round(sum(info["xs"]) / len(info["xs"]), 1)
         avg_y = round(sum(info["ys"]) / len(info["ys"]), 1)
         pressure_traps.append(

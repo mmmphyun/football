@@ -182,9 +182,7 @@ def compute_formation_summary(
             )
 
         # 필드 플레이어(GK 제외) 선발 선수들 위치 기준 지표 산출
-        field_starters = [
-            p for p in result if p["is_starter"] and p.get("position_id") != 1
-        ]
+        field_starters = [p for p in result if p["is_starter"] and p.get("position_id") != 1]
         if not field_starters:
             field_starters = [p for p in result if p.get("position_id") != 1][:10]
 
@@ -209,9 +207,15 @@ def compute_formation_summary(
         return result, line_height, width, length
 
     # 3대 국면 계산
-    def_players, def_line, def_w, def_l = _calc_player_metrics(defensive_locations, default_x_shift=-10.0)
-    bld_players, bld_line, bld_w, bld_l = _calc_player_metrics(buildup_locations, default_x_shift=0.0)
-    att_players, att_line, att_w, att_l = _calc_player_metrics(attacking_locations, default_x_shift=15.0)
+    def_players, def_line, def_w, def_l = _calc_player_metrics(
+        defensive_locations, default_x_shift=-10.0
+    )
+    bld_players, bld_line, bld_w, bld_l = _calc_player_metrics(
+        buildup_locations, default_x_shift=0.0
+    )
+    att_players, att_line, att_w, att_l = _calc_player_metrics(
+        attacking_locations, default_x_shift=15.0
+    )
 
     # 전반적 지표 계산
     overall_players, overall_line, overall_w, overall_l = _calc_player_metrics(all_locations)
@@ -230,8 +234,12 @@ def compute_formation_summary(
         "formation_name": formation_name,
         "team_length": overall_l,
         "team_width": overall_w,
-        "team_center_x": round(sum(p["x"] for p in (starters or overall_players)) / len(starters or overall_players), 2),
-        "team_center_y": round(sum(p["y"] for p in (starters or overall_players)) / len(starters or overall_players), 2),
+        "team_center_x": round(
+            sum(p["x"] for p in (starters or overall_players)) / len(starters or overall_players), 2
+        ),
+        "team_center_y": round(
+            sum(p["y"] for p in (starters or overall_players)) / len(starters or overall_players), 2
+        ),
         "defensive": {
             "formation": def_shape,
             "line_height": def_line,

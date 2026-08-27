@@ -1,4 +1,4 @@
-﻿"""시간대별 전술 변화 타임라인 분석 모듈.
+"""시간대별 전술 변화 타임라인 분석 모듈.
 
 경기를 15분 단위 구간(0~15, 15~30, 30~45, 45~60, 60~75, 75~90+)으로 분할하여
 수비 라인 높이, 점유율, 압박 강도, 패스 성공률 및 국면별 점유 변화를 산출합니다.
@@ -45,9 +45,7 @@ def compute_timeline_summary(
             ev for ev in poss_events if ev.get("possession_team", {}).get("id") == team_id
         ]
         poss_pct = (
-            round((len(team_poss_events) / len(poss_events)) * 100.0, 1)
-            if poss_events
-            else 50.0
+            round((len(team_poss_events) / len(poss_events)) * 100.0, 1) if poss_events else 50.0
         )
 
         # 2. 패스 성공률
@@ -66,18 +64,20 @@ def compute_timeline_summary(
             loc = ev.get("location")
             if loc and len(loc) >= 1:
                 x = float(loc[0])
-                if ev.get("type", {}).get("name") in {
-                    "Pressure",
-                    "Tackle",
-                    "Interception",
-                    "Block",
-                    "Clearance",
-                } or x < DEFENSIVE_THIRD_X + 15.0:
+                if (
+                    ev.get("type", {}).get("name")
+                    in {
+                        "Pressure",
+                        "Tackle",
+                        "Interception",
+                        "Block",
+                        "Clearance",
+                    }
+                    or x < DEFENSIVE_THIRD_X + 15.0
+                ):
                     def_locs.append(x)
 
-        avg_def_line = (
-            round(sum(def_locs) / len(def_locs), 1) if def_locs else 35.0
-        )
+        avg_def_line = round(sum(def_locs) / len(def_locs), 1) if def_locs else 35.0
 
         # 5. 국면 분포 (Defensive / Buildup / Attacking)
         def_count = 0
