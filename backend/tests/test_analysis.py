@@ -128,10 +128,27 @@ class TestFormationAnalysis:
         assert summary_ukr["team_length"] > 0
         assert summary_ukr["team_width"] > 0
 
-        # 3대 국면 검증
+        # 3대 국면 및 UEFA 6대 서브 국면 검증
         assert "defensive" in summary_ukr
         assert "buildup" in summary_ukr
         assert "attacking" in summary_ukr
+        assert "subphases" in summary_ukr
+
+        subphases = summary_ukr["subphases"]
+        expected_subphases = [
+            "buildup",
+            "progression",
+            "final_third",
+            "high_press",
+            "mid_block",
+            "low_block",
+        ]
+        for sp in expected_subphases:
+            assert sp in subphases
+            assert subphases[sp]["line_height"] > 0
+            assert subphases[sp]["width"] > 0
+            assert subphases[sp]["length"] > 0
+            assert len(subphases[sp]["players"]) > 0
 
         assert summary_ukr["defensive"]["line_height"] > 0
         assert summary_ukr["buildup"]["line_height"] > 0
@@ -232,15 +249,15 @@ class TestPressureAnalysis:
 
 
 class TestPlaybookAnalysis:
-    """시그니처 공격 패턴 TOP 3 플레이북 분석 테스트."""
+    """학계 연구 기반 5대 시그니처 공격 패턴 플레이북 분석 테스트."""
 
     def test_compute_playbook_summary(
         self,
         sample_events: list[dict[str, Any]],
     ) -> None:
-        """시그니처 공격 패턴 TOP 3 추출 및 시퀀스 무결성 검증."""
+        """시그니처 공격 패턴 5종 추출 및 시퀀스 무결성 검증."""
         playbook = compute_playbook_summary(events=sample_events, team_id=911)
-        assert len(playbook) == 3
+        assert len(playbook) == 5
         for item in playbook:
             assert "pattern_id" in item
             assert "name" in item

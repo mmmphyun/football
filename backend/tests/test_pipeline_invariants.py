@@ -19,9 +19,24 @@ def test_match_summary_invariants(
     assert len(summary["teams"]) == 2
 
     for _t_id, t_data in summary["teams"].items():
-        # 1. 3대 국면 포메이션 무결성
+        # 1. 3대 국면 및 UEFA 6대 서브 국면 포메이션 무결성
         form = t_data.get("formation", {})
         assert "defensive" in form and "buildup" in form and "attacking" in form
+        assert "subphases" in form
+
+        for sp_name in (
+            "buildup",
+            "progression",
+            "final_third",
+            "high_press",
+            "mid_block",
+            "low_block",
+        ):
+            sp_data = form["subphases"][sp_name]
+            assert "line_height" in sp_data and 10.0 <= sp_data["line_height"] <= 90.0
+            assert "width" in sp_data and sp_data["width"] > 0
+            assert "length" in sp_data and sp_data["length"] > 0
+            assert "players" in sp_data and len(sp_data["players"]) > 0
 
         for phase in ("defensive", "buildup", "attacking"):
             p_data = form[phase]
@@ -33,9 +48,9 @@ def test_match_summary_invariants(
                 assert 0.0 <= p["x"] <= 120.0
                 assert 0.0 <= p["y"] <= 80.0
 
-        # 2. 시그니처 플레이북 TOP 3 무결성
+        # 2. 학계 연구 기반 5대 시그니처 플레이북 무결성
         playbook = t_data.get("playbook", [])
-        assert len(playbook) == 3
+        assert len(playbook) == 5
         for pattern in playbook:
             assert "pattern_id" in pattern
             assert "name_ko" in pattern
