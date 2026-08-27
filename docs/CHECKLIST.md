@@ -71,4 +71,4 @@
 - [x] 브랜치: `git checkout -b feat/#49-integration-and-deploy`
 - [x] 실행: `uv run python -m app.cli fetch && uv run python -m app.cli process --force`
 - [x] 검증: 백엔드/프론트엔드 단위 및 E2E 빌드/테스트 전수 통과
-- [ ] PR: `gh pr create --title "[Phase 6] 종합 검증 완료" --body "Closes #49"`
+- [x] PR: `gh pr create --title "[Phase 6] 종합 검증 완료" --body "Closes #49"` (PR #50 Merged)
