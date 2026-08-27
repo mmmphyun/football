@@ -103,11 +103,11 @@ def compute_playbook_summary(
                 sequences.append(current_seq)
                 current_seq = []
         else:
-            if len(current_seq) >= 3:
+            if len(current_seq) >= 2:
                 sequences.append(current_seq)
             current_seq = []
 
-    if len(current_seq) >= 3:
+    if len(current_seq) >= 2:
         sequences.append(current_seq)
 
     # 2. 패턴별 시퀀스 분류 및 xG 집계
