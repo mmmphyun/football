@@ -140,6 +140,10 @@ def compute_timeline_summary(
                 }
             )
 
+        # 활동량(이벤트 참여 횟수) 상위 최대 11명으로 정원 엄수 (교체 출전 선수로 인한 증식 방지)
+        slice_players.sort(key=lambda p: p["event_count"], reverse=True)
+        slice_players = slice_players[:11]
+
         # 7. 구간 내 주요 이벤트 (골, 옐로/레드카드, 슛)
         key_events = []
         for ev in slice_events:
