@@ -2,13 +2,14 @@
  * 하이라이트 재생 시 프레임 간 60fps 부드러운 위치 보간(Lerp) 엔진.
  */
 
-import { Frame, FramePlayer } from "../types";
+import { Frame, FramePlayer, PassingLane } from "../types";
 
 export interface InterpolatedFrame {
   timestamp_sec: number;
   ball_location?: [number, number];
   visible_area?: number[];
   players: FramePlayer[];
+  passing_lanes?: PassingLane[];
   description?: string;
   minute: number;
   second: number;
@@ -34,6 +35,7 @@ export function interpolateFrames(
       ball_location: f.ball_location,
       visible_area: f.visible_area,
       players: f.players,
+      passing_lanes: f.passing_lanes,
       description: f.description,
       minute: f.minute,
       second: f.second,
@@ -47,6 +49,7 @@ export function interpolateFrames(
       ball_location: lastFrame.ball_location,
       visible_area: lastFrame.visible_area,
       players: lastFrame.players,
+      passing_lanes: lastFrame.passing_lanes,
       description: lastFrame.description,
       minute: lastFrame.minute,
       second: lastFrame.second,
@@ -203,6 +206,7 @@ export function interpolateFrames(
     ball_location: ballLoc,
     visible_area: clampedAlpha < 0.5 ? f1.visible_area : f2.visible_area,
     players: interpolatedPlayers,
+    passing_lanes: clampedAlpha < 0.5 ? f1.passing_lanes : f2.passing_lanes,
     description: clampedAlpha < 0.5 ? f1.description : f2.description,
     minute: clampedAlpha < 0.5 ? f1.minute : f2.minute,
     second: clampedAlpha < 0.5 ? f1.second : f2.second,
