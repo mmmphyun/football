@@ -813,9 +813,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </text>
             </g>
 
-            {/* 타임라인 구간 선수 포메이션 마커 */}
+            {/* 타임라인 구간 선수 포메이션 마커 (최대 11명 엄수) */}
             {timelineSlice.players &&
-              timelineSlice.players.map((tp) => {
+              timelineSlice.players.slice(0, 11).map((tp) => {
                 const [sx, sy] = toSvg(tp.x, tp.y);
                 return (
                   <g

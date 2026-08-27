@@ -42,10 +42,13 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
 
   const currentTeam = summary.teams[String(selectedTeamId)] || Object.values(summary.teams)[0];
 
+  // 해당 경기에서 실제로 1회 이상 발생한 시그니처 공격 패턴만 필터링
+  const activePlaybooks = (currentTeam?.playbook || []).filter((p) => p.occurrences > 0);
+
   // 팀 변경 시 플레이북 및 타임라인 슬라이스 자동 리셋/동기화
   React.useEffect(() => {
-    if (currentTeam?.playbook && currentTeam.playbook.length > 0) {
-      setSelectedPlaybookPattern(currentTeam.playbook[0]);
+    if (activePlaybooks.length > 0) {
+      setSelectedPlaybookPattern(activePlaybooks[0]);
     } else {
       setSelectedPlaybookPattern(null);
     }
@@ -517,47 +520,53 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           {activeTab === "playbook" && (
             <div className="space-y-4">
               <StatCard
-                title="5대 시그니처 전술 플레이북"
-                value={`${playbook?.length || 0}개 패턴`}
-                subtitle="학계 연구 기반 시그니처 공격 전개 시퀀스"
-                badge="5 Signature Patterns"
+                title="시그니처 전술 플레이북"
+                value={`${activePlaybooks.length}개 패턴`}
+                subtitle="해당 경기에서 실제로 관측된 시그니처 공격 전개 패턴"
+                badge="Active Signatures"
                 badgeColor="emerald"
               />
 
-              <div className="space-y-3">
-                {playbook?.map((pattern) => {
-                  const isSelected = selectedPlaybookPattern?.pattern_id === pattern.pattern_id;
-                  return (
-                    <div
-                      key={pattern.pattern_id}
-                      onClick={() => setSelectedPlaybookPattern(pattern)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? "bg-slate-800/90 border-emerald-500/80 shadow-lg"
-                          : "bg-slate-900 border-slate-800 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-bold text-white text-sm">{pattern.name_ko}</div>
-                        <div className="flex items-center space-x-2">
-                          <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded font-mono font-bold">
-                            {pattern.occurrences}회 시도
-                          </span>
-                          <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded font-mono">
-                            xG {pattern.total_xg.toFixed(2)}
-                          </span>
+              {activePlaybooks.length === 0 ? (
+                <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-400 text-xs">
+                  해당 경기에서 기록된 시그니처 공격 전개 패턴이 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activePlaybooks.map((pattern) => {
+                    const isSelected = selectedPlaybookPattern?.pattern_id === pattern.pattern_id;
+                    return (
+                      <div
+                        key={pattern.pattern_id}
+                        onClick={() => setSelectedPlaybookPattern(pattern)}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "bg-slate-800/90 border-emerald-500/80 shadow-lg"
+                            : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-bold text-white text-sm">{pattern.name_ko}</div>
+                          <div className="flex items-center space-x-2">
+                            <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded font-mono font-bold">
+                              {pattern.occurrences}회 시도
+                            </span>
+                            <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded font-mono">
+                              xG {pattern.total_xg.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-slate-400 leading-relaxed mb-3">
+                          {pattern.description}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          시퀀스 단계: {pattern.sequences[0]?.length || 0}개 이벤트 연계
                         </div>
                       </div>
-                      <div className="text-xs text-slate-400 leading-relaxed mb-3">
-                        {pattern.description}
-                      </div>
-                      <div className="text-[11px] text-slate-500 font-mono">
-                        시퀀스 단계: {pattern.sequences[0]?.length || 0}개 이벤트 연계
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

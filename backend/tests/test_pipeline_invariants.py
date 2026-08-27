@@ -73,22 +73,27 @@ def test_match_summary_invariants(
                 assert 0.0 <= p["x"] <= 120.0
                 assert 0.0 <= p["y"] <= 80.0
 
-        # 2. 학계 연구 기반 5대 시그니처 플레이북 무결성
+        # 2. 학계 연구 기반 시그니처 플레이북 무결성 (실측 발생 패턴만 포함)
         playbook = t_data.get("playbook", [])
-        assert len(playbook) == 5
+        assert len(playbook) >= 1
         for pattern in playbook:
             assert "pattern_id" in pattern
             assert "name_ko" in pattern
             assert "sequences" in pattern
             assert len(pattern["sequences"]) > 0
+            # 발생 횟수가 0회인 패턴은 노출되지 않아야 함 (단, 0개 시 fallback 1개 제외)
+            if len(playbook) > 1:
+                assert pattern["occurrences"] > 0
 
-        # 3. 15분 전술 타임라인 무결성
+        # 3. 15분 전술 타임라인 무결성 (구간별 선수 정원 11명 엄수)
         timeline = t_data.get("timeline", [])
         assert len(timeline) >= 6
         for sl in timeline:
             assert "label" in sl
             assert 0.0 <= sl["possession_pct"] <= 100.0
             assert 10.0 <= sl["defensive_line_height"] <= 90.0
+            if "players" in sl:
+                assert len(sl["players"]) <= 11
 
         # 4. 압박 트랩 및 PPDA 무결성
         pressure = t_data.get("pressure", {})
