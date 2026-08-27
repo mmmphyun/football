@@ -97,5 +97,32 @@ describe("interpolateFrames", () => {
     expect(opp?.location[0]).toBeCloseTo(81.0);
     expect(opp?.location[1]).toBeCloseTo(61.0);
   });
+
+  it("smoothly morphs visible_area polygon between frames", () => {
+    const polygonFrames: Frame[] = [
+      {
+        frame_index: 0,
+        timestamp_sec: 10.0,
+        minute: 0,
+        second: 10,
+        visible_area: [0.0, 0.0, 40.0, 0.0, 40.0, 40.0, 0.0, 40.0],
+        players: [],
+      },
+      {
+        frame_index: 1,
+        timestamp_sec: 20.0,
+        minute: 0,
+        second: 20,
+        visible_area: [20.0, 0.0, 60.0, 0.0, 60.0, 40.0, 20.0, 40.0],
+        players: [],
+      },
+    ];
+
+    const res = interpolateFrames(polygonFrames, 15.0);
+    expect(res).not.toBeNull();
+    expect(res?.visible_area).toBeDefined();
+    expect(res?.visible_area?.[0]).toBeCloseTo(10.0);
+    expect(res?.visible_area?.[2]).toBeCloseTo(50.0);
+  });
 });
 
