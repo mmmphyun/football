@@ -16,33 +16,33 @@ from app.config import (
     SUBPHASE_PROGRESSION_MAX_X,
 )
 
-# StatsBomb 포지션 ID 기준 기본 앵커 좌표 (x: 0~120, y: 0~80) - 이벤트 0건 시 폴백용으로만 사용
+# StatsBomb 25개 포지션 ID 기준 공식 선발 정형화 앵커 좌표 (피치 120m x 80m 규격 기준 좌우 대칭 격자)
 POSITION_ANCHORS: dict[int, tuple[float, float]] = {
     1: (6.0, 40.0),  # Goalkeeper
-    2: (25.0, 70.0),  # Right Back
-    3: (25.0, 50.0),  # Right Center Back
+    2: (28.0, 68.0),  # Right Back
+    3: (25.0, 49.0),  # Right Center Back
     4: (25.0, 40.0),  # Center Back
-    5: (25.0, 30.0),  # Left Center Back
-    6: (25.0, 10.0),  # Left Back
-    7: (45.0, 70.0),  # Right Wing Back
-    8: (45.0, 10.0),  # Left Wing Back
-    9: (50.0, 40.0),  # Right Defensive Midfield
-    10: (50.0, 40.0),  # Center Defensive Midfield
-    11: (50.0, 40.0),  # Left Defensive Midfield
-    12: (65.0, 70.0),  # Right Midfield
-    13: (65.0, 50.0),  # Right Center Midfield
-    14: (65.0, 40.0),  # Center Midfield
-    15: (65.0, 30.0),  # Left Center Midfield
-    16: (65.0, 10.0),  # Left Midfield
-    17: (80.0, 70.0),  # Right Wing
-    18: (80.0, 50.0),  # Right Attacking Midfield
-    19: (80.0, 40.0),  # Center Attacking Midfield
-    20: (80.0, 30.0),  # Left Attacking Midfield
-    21: (80.0, 10.0),  # Left Wing
-    22: (95.0, 50.0),  # Right Center Forward
-    23: (100.0, 40.0),  # Center Forward
-    24: (95.0, 30.0),  # Left Center Forward
-    25: (90.0, 40.0),  # Secondary Striker
+    5: (25.0, 31.0),  # Left Center Back
+    6: (28.0, 12.0),  # Left Back
+    7: (38.0, 70.0),  # Right Wing Back
+    8: (38.0, 10.0),  # Left Wing Back
+    9: (48.0, 52.0),  # Right Defensive Midfield
+    10: (46.0, 40.0),  # Center Defensive Midfield
+    11: (48.0, 28.0),  # Left Defensive Midfield
+    12: (62.0, 70.0),  # Right Midfield
+    13: (60.0, 52.0),  # Right Center Midfield
+    14: (60.0, 40.0),  # Center Midfield
+    15: (60.0, 28.0),  # Left Center Midfield
+    16: (62.0, 10.0),  # Left Midfield
+    17: (82.0, 68.0),  # Right Wing
+    18: (74.0, 52.0),  # Right Attacking Midfield
+    19: (74.0, 40.0),  # Center Attacking Midfield
+    20: (74.0, 28.0),  # Left Attacking Midfield
+    21: (82.0, 12.0),  # Left Wing
+    22: (88.0, 48.0),  # Right Center Forward
+    23: (90.0, 40.0),  # Center Forward
+    24: (88.0, 32.0),  # Left Center Forward
+    25: (82.0, 40.0),  # Secondary Striker
 }
 
 DEFENDER_POSITION_IDS = {2, 3, 4, 5, 6, 7, 8}
@@ -410,8 +410,11 @@ def compute_formation_summary(
                 raw_trim_x = anchor[0] + phase_offset
                 raw_trim_y = anchor[1]
 
-            # 하이브리드 블렌딩: 기본 전술 앵커(구조적 뼈대) 45% + 실측 오픈플레이 전술 변위 55%
-            if pos_id == 1:
+            # 0. 선발 공식 라인업(overall)은 실측 변위 혼입 없이 100% 대칭 정형화 앵커 좌표 부여
+            if phase_type == "overall":
+                hybrid_x = anchor[0]
+                hybrid_y = anchor[1]
+            elif pos_id == 1:
                 # 골키퍼는 골문 앞 안정적 보호 (5.5m ~ 16.0m)
                 hybrid_x = max(5.5, min(16.0, 0.6 * anchor[0] + 0.4 * raw_trim_x))
                 hybrid_y = max(34.0, min(46.0, 0.7 * anchor[1] + 0.3 * raw_trim_y))
@@ -427,12 +430,15 @@ def compute_formation_summary(
             disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
             pos_name = p_info.get("primary_position", "Player")
 
-            # 실측 기반 전술 역할 판정 (하이브리드 실측 좌표 기준)
+            # 실측 기반 전술 역할 판정 (오픈플레이 실측 좌표 또는 앵커 기준)
+            role_eval_x = raw_trim_x if len(overall_locs) >= 3 else hybrid_x
+            role_eval_y = raw_trim_y if len(overall_locs) >= 3 else hybrid_y
+
             role_en, role_ko, role_desc = determine_tactical_role(
                 position_id=pos_id,
                 position_name=pos_name,
-                avg_x=hybrid_x,
-                avg_y=hybrid_y,
+                avg_x=role_eval_x,
+                avg_y=role_eval_y,
                 actions_count=count or len(overall_locs),
             )
 
@@ -578,6 +584,17 @@ def compute_formation_summary(
             "length": lb_l,
             "players": _extract_eleven(lb_players),
             "all_players": lb_players,
+        },
+        "overall": {
+            "name": "선발 공식 라인업",
+            "name_en": "Starting XI",
+            "category": "base_formation",
+            "formation": formation_name,
+            "line_height": overall_line,
+            "width": overall_w,
+            "length": overall_l,
+            "players": starters,
+            "all_players": overall_players,
         },
     }
 
