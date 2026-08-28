@@ -86,10 +86,13 @@ def compute_pass_network(
             avg_x, avg_y = 60.0, 40.0
 
         if attempts > 0 or p_info.get("is_starter"):
+            disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
             nodes.append(
                 {
                     "player_id": p_id,
-                    "player_name": p_info.get("player_name"),
+                    "player_name": disp_name,
+                    "player_nickname": p_info.get("player_nickname"),
+                    "full_name": p_info.get("player_name"),
                     "jersey_number": p_info.get("jersey_number"),
                     "position": p_info.get("primary_position"),
                     "is_starter": p_info.get("is_starter", False),

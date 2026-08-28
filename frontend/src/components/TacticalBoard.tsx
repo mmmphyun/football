@@ -80,6 +80,17 @@ const SVG_WIDTH = 1240;
 const SVG_HEIGHT = 840;
 const MARGIN = 20;
 
+/**
+ * 선수 닉네임 및 성명을 피치 배지에 적합하게 가독성 높은 형태로 포맷합니다.
+ */
+function formatPlayerName(name?: string, nickname?: string): string {
+  if (nickname && nickname.trim().length > 0) return nickname;
+  if (!name) return "Unknown";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 2) return name;
+  return `${parts[0][0]}. ${parts[1]}`;
+}
+
 export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   showFormation = false,
   selectedPhase = "overall",
@@ -762,50 +773,51 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             })()}
 
             {/* 타임라인 구간 정보 배너 (상단 중앙) */}
-            <g transform={`translate(${centerSpotX - 160}, ${pitchY + 15})`}>
+            <g transform={`translate(${centerSpotX - 180}, ${pitchY + 15})`}>
               <rect
-                width="320"
-                height="65"
-                rx="10"
-                fill="rgba(15, 23, 42, 0.95)"
+                width="360"
+                height="72"
+                rx="12"
+                fill="rgba(15, 23, 42, 0.96)"
                 stroke="#334155"
                 strokeWidth="1.5"
                 className="drop-shadow-xl"
               />
               <text
-                x="160"
-                y="25"
+                x="180"
+                y="27"
                 fill="#ffffff"
-                fontSize="14"
+                fontSize="16"
                 fontWeight="bold"
                 textAnchor="middle"
               >
                 {timelineSlice.label} 전술 요약
               </text>
               <text
-                x="60"
-                y="48"
+                x="68"
+                y="53"
                 fill="#34d399"
-                fontSize="12"
+                fontSize="13"
                 fontWeight="bold"
                 textAnchor="middle"
               >
                 점유율 {timelineSlice.possession_pct.toFixed(1)}%
               </text>
               <text
-                x="160"
-                y="48"
+                x="180"
+                y="53"
                 fill="#94a3b8"
-                fontSize="12"
+                fontSize="13"
+                fontWeight="medium"
                 textAnchor="middle"
               >
                 패스성공 {timelineSlice.pass_accuracy.toFixed(1)}%
               </text>
               <text
-                x="260"
-                y="48"
+                x="292"
+                y="53"
                 fill="#f59e0b"
-                fontSize="12"
+                fontSize="13"
                 fontWeight="bold"
                 textAnchor="middle"
               >
@@ -817,6 +829,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             {timelineSlice.players &&
               timelineSlice.players.slice(0, 11).map((tp) => {
                 const [sx, sy] = toSvg(tp.x, tp.y);
+                const displayName = formatPlayerName(tp.player_name, (tp as any).player_nickname);
                 return (
                   <g
                     key={`timeline-player-${tp.player_id}`}
@@ -827,39 +840,39 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     }}
                   >
                     <circle
-                      r="16"
+                      r="19"
                       fill="#0284c7"
                       stroke="#ffffff"
                       strokeWidth="2.5"
                       className="drop-shadow-lg"
                     />
                     <text
-                      y="4"
+                      y="5"
                       fill="#ffffff"
-                      fontSize="11"
+                      fontSize="13"
                       fontWeight="bold"
                       textAnchor="middle"
                     >
                       {tp.position?.slice(0, 2) ?? "P"}
                     </text>
                     <rect
-                      x="-40"
-                      y="20"
-                      width="80"
-                      height="18"
-                      rx="4"
-                      fill="rgba(15, 23, 42, 0.9)"
+                      x="-50"
+                      y="23"
+                      width="100"
+                      height="22"
+                      rx="5"
+                      fill="rgba(15, 23, 42, 0.92)"
                       stroke="#0284c7"
-                      strokeWidth="1"
+                      strokeWidth="1.2"
                     />
                     <text
-                      y="33"
+                      y="38"
                       fill="#e0f2fe"
-                      fontSize="10"
-                      fontWeight="semibold"
+                      fontSize="12"
+                      fontWeight="bold"
                       textAnchor="middle"
                     >
-                      {tp.player_name.split(" ").pop()}
+                      {displayName}
                     </text>
                   </g>
                 );
@@ -1053,7 +1066,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             {passNodes &&
               passNodes.map((node) => {
                 const [nx, ny] = toSvg(node.x, node.y);
-                const r = Math.max(14, Math.min(22, 12 + (node.pass_count ?? 0) * 0.35));
+                const r = Math.max(16, Math.min(24, 14 + (node.pass_count ?? 0) * 0.35));
+                const displayName = formatPlayerName(node.player_name, (node as any).player_nickname);
                 return (
                   <g key={`pass-node-${node.player_id}`}>
                     <circle
@@ -1067,33 +1081,33 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     />
                     <text
                       x={nx}
-                      y={ny + 4}
+                      y={ny + 5}
                       fill="#ffffff"
-                      fontSize="12"
+                      fontSize="14"
                       fontWeight="bold"
                       textAnchor="middle"
                     >
                       {node.jersey_number ?? (node.position ? node.position.slice(0, 2) : "P")}
                     </text>
                     <rect
-                      x={nx - 45}
-                      y={ny + r + 3}
-                      width="90"
-                      height="18"
-                      rx="4"
-                      fill="rgba(15, 23, 42, 0.85)"
+                      x={nx - 55}
+                      y={ny + r + 4}
+                      width="110"
+                      height="22"
+                      rx="5"
+                      fill="rgba(15, 23, 42, 0.9)"
                       stroke="#0284c7"
-                      strokeWidth="1"
+                      strokeWidth="1.2"
                     />
                     <text
                       x={nx}
-                      y={ny + r + 16}
+                      y={ny + r + 19}
                       fill="#e0f2fe"
-                      fontSize="11"
-                      fontWeight="semibold"
+                      fontSize="12"
+                      fontWeight="bold"
                       textAnchor="middle"
                     >
-                      {node.player_name.split(" ").pop()} ({node.pass_count ?? 0}회)
+                      {displayName} ({node.pass_count ?? 0}회)
                     </text>
                   </g>
                 );
@@ -1124,18 +1138,18 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       <rect
                         x={lx + 6}
                         y={pitchY + 12}
-                        width="140"
-                        height="26"
-                        rx="6"
-                        fill="rgba(15, 23, 42, 0.9)"
+                        width="165"
+                        height="30"
+                        rx="7"
+                        fill="rgba(15, 23, 42, 0.92)"
                         stroke="#60a5fa"
                         strokeWidth="1.5"
                       />
                       <text
-                        x={lx + 76}
-                        y={pitchY + 29}
+                        x={lx + 88}
+                        y={pitchY + 32}
                         fill="#93c5fd"
-                        fontSize="13"
+                        fontSize="14"
                         fontWeight="bold"
                         textAnchor="middle"
                       >
@@ -1150,6 +1164,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             {/* 11명 선수 토큰 (위치 모핑 애니메이션) */}
             {activeFormationPlayers.map((fp) => {
               const [sx, sy] = toSvg(fp.x, fp.y);
+              const displayName = formatPlayerName(fp.player_name, (fp as any).player_nickname);
               const phaseColorMap: Record<string, string> = {
                 buildup: "#059669",
                 progression: "#0284c7",
@@ -1172,7 +1187,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   }}
                 >
                   <circle
-                    r="18"
+                    r="20"
                     fill={phaseColor}
                     stroke="#ffffff"
                     strokeWidth="3"
@@ -1181,30 +1196,30 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   <text
                     y="5"
                     fill="#ffffff"
-                    fontSize="13"
+                    fontSize="14"
                     fontWeight="bold"
                     textAnchor="middle"
                   >
                     {fp.jersey_number ?? fp.position?.slice(0, 2) ?? "P"}
                   </text>
                   <rect
-                    x="-45"
-                    y="22"
-                    width="90"
-                    height="20"
+                    x="-55"
+                    y="24"
+                    width="110"
+                    height="22"
                     rx="5"
-                    fill="rgba(15, 23, 42, 0.9)"
+                    fill="rgba(15, 23, 42, 0.92)"
                     stroke={phaseColor}
-                    strokeWidth="1"
+                    strokeWidth="1.2"
                   />
                   <text
-                    y="36"
+                    y="39"
                     fill="#ffffff"
                     fontSize="12"
-                    fontWeight="semibold"
+                    fontWeight="bold"
                     textAnchor="middle"
                   >
-                    {fp.player_name.split(" ").pop()}
+                    {displayName}
                   </text>
                 </g>
               );

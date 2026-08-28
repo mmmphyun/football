@@ -75,7 +75,7 @@ def analyze_match(
         passes_data = compute_pass_network(events, lineups, t_id)
         pressure_data = compute_pressure_summary(events, t_id)
         playbook_data = compute_playbook_summary(events, t_id)
-        timeline_data = compute_timeline_summary(events, t_id)
+        timeline_data = compute_timeline_summary(events, t_id, lineups=lineups)
         buildup_data = compute_buildup_summary(events, t_id)
         transitions_data = compute_transitions_summary(events, t_id)
 
