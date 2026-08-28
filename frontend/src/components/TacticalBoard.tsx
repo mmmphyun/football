@@ -91,6 +91,25 @@ function formatPlayerName(name?: string, nickname?: string): string {
   return `${parts[0][0]}. ${parts[1]}`;
 }
 
+/**
+ * 포지션명을 축구 표준 약어(GK, CB, LB, RB, DM, CM, AM, LW, RW, FW)로 직관적으로 변환합니다.
+ */
+function getPositionShort(pos?: string): string {
+  if (!pos) return "P";
+  const p = pos.toLowerCase();
+  if (p.includes("goalkeeper")) return "GK";
+  if (p.includes("center back") || p.includes("cb")) return "CB";
+  if (p.includes("left back") || p.includes("lb")) return "LB";
+  if (p.includes("right back") || p.includes("rb")) return "RB";
+  if (p.includes("defensive mid") || p.includes("cdm")) return "DM";
+  if (p.includes("center mid") || p.includes("cm")) return "CM";
+  if (p.includes("attacking mid") || p.includes("cam")) return "AM";
+  if (p.includes("left wing") || p.includes("lw")) return "LW";
+  if (p.includes("right wing") || p.includes("rw")) return "RW";
+  if (p.includes("forward") || p.includes("striker") || p.includes("st")) return "FW";
+  return pos.slice(0, 2).toUpperCase();
+}
+
 export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   showFormation = false,
   selectedPhase = "overall",
@@ -733,7 +752,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         {/* 2-4. 15분 전술 타임라인 오버레이 */}
         {showTimeline && timelineSlice && (
           <g>
-            {/* 수비 라인 높이 표시선 */}
+            {/* 수비 라인 높이 표시선 (하단 배치로 상단 배너와 겹침 방지) */}
             {(() => {
               const [lx] = toSvg(timelineSlice.defensive_line_height, 0);
               return (
@@ -750,19 +769,19 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   />
                   <rect
                     x={lx + 6}
-                    y={pitchY + 12}
-                    width="150"
-                    height="28"
-                    rx="6"
-                    fill="rgba(15, 23, 42, 0.92)"
+                    y={pitchY2 - 42}
+                    width="165"
+                    height="30"
+                    rx="7"
+                    fill="rgba(15, 23, 42, 0.94)"
                     stroke="#38bdf8"
                     strokeWidth="1.5"
                   />
                   <text
-                    x={lx + 81}
-                    y={pitchY + 31}
+                    x={lx + 88}
+                    y={pitchY2 - 22}
                     fill="#7dd3fc"
-                    fontSize="13"
+                    fontSize="14"
                     fontWeight="bold"
                     textAnchor="middle"
                   >
@@ -772,30 +791,30 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               );
             })()}
 
-            {/* 타임라인 구간 정보 배너 (상단 중앙) */}
-            <g transform={`translate(${centerSpotX - 180}, ${pitchY + 15})`}>
+            {/* 타임라인 구간 정보 배너 (슬림한 상단 컴팩트 HUD 바) */}
+            <g transform={`translate(${centerSpotX - 240}, ${pitchY + 8})`}>
               <rect
-                width="360"
-                height="72"
-                rx="12"
-                fill="rgba(15, 23, 42, 0.96)"
+                width="480"
+                height="40"
+                rx="10"
+                fill="rgba(15, 23, 42, 0.95)"
                 stroke="#334155"
                 strokeWidth="1.5"
                 className="drop-shadow-xl"
               />
               <text
-                x="180"
-                y="27"
+                x="70"
+                y="25"
                 fill="#ffffff"
-                fontSize="16"
-                fontWeight="bold"
+                fontSize="14"
+                fontWeight="black"
                 textAnchor="middle"
               >
-                {timelineSlice.label} 전술 요약
+                {timelineSlice.label}
               </text>
               <text
-                x="68"
-                y="53"
+                x="180"
+                y="25"
                 fill="#34d399"
                 fontSize="13"
                 fontWeight="bold"
@@ -804,18 +823,18 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 점유율 {timelineSlice.possession_pct.toFixed(1)}%
               </text>
               <text
-                x="180"
-                y="53"
-                fill="#94a3b8"
+                x="290"
+                y="25"
+                fill="#cbd5e1"
                 fontSize="13"
-                fontWeight="medium"
+                fontWeight="semibold"
                 textAnchor="middle"
               >
                 패스성공 {timelineSlice.pass_accuracy.toFixed(1)}%
               </text>
               <text
-                x="292"
-                y="53"
+                x="400"
+                y="25"
                 fill="#f59e0b"
                 fontSize="13"
                 fontWeight="bold"
@@ -825,11 +844,12 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </text>
             </g>
 
-            {/* 타임라인 구간 선수 포메이션 마커 (최대 11명 엄수) */}
+            {/* 타임라인 구간 선수 포메이션 마커 (등번호 우선 표기 및 최대 11명 엄수) */}
             {timelineSlice.players &&
               timelineSlice.players.slice(0, 11).map((tp) => {
                 const [sx, sy] = toSvg(tp.x, tp.y);
                 const displayName = formatPlayerName(tp.player_name, (tp as any).player_nickname);
+                const tokenLabel = tp.jersey_number ?? getPositionShort(tp.position);
                 return (
                   <g
                     key={`timeline-player-${tp.player_id}`}
@@ -840,33 +860,33 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     }}
                   >
                     <circle
-                      r="19"
+                      r="21"
                       fill="#0284c7"
                       stroke="#ffffff"
-                      strokeWidth="2.5"
+                      strokeWidth="3"
                       className="drop-shadow-lg"
                     />
                     <text
-                      y="5"
+                      y="6"
                       fill="#ffffff"
-                      fontSize="13"
-                      fontWeight="bold"
+                      fontSize="15"
+                      fontWeight="black"
                       textAnchor="middle"
                     >
-                      {tp.position?.slice(0, 2) ?? "P"}
+                      {tokenLabel}
                     </text>
                     <rect
-                      x="-50"
-                      y="23"
-                      width="100"
+                      x="-55"
+                      y="25"
+                      width="110"
                       height="22"
                       rx="5"
-                      fill="rgba(15, 23, 42, 0.92)"
+                      fill="rgba(15, 23, 42, 0.94)"
                       stroke="#0284c7"
                       strokeWidth="1.2"
                     />
                     <text
-                      y="38"
+                      y="40"
                       fill="#e0f2fe"
                       fontSize="12"
                       fontWeight="bold"

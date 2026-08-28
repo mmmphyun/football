@@ -132,6 +132,8 @@ export interface TimelineSlice {
   players?: Array<{
     player_id: number;
     player_name: string;
+    player_nickname?: string;
+    jersey_number?: number;
     position?: string;
     x: number;
     y: number;

@@ -131,6 +131,7 @@ def compute_timeline_summary(
                         "player_id": pid,
                         "player_name": disp_name,
                         "player_nickname": p_meta.get("player_nickname"),
+                        "jersey_number": p_meta.get("jersey_number"),
                         "position": pos_name,
                     }
 
@@ -144,6 +145,7 @@ def compute_timeline_summary(
                     "player_id": pid,
                     "player_name": info.get("player_name", "Unknown"),
                     "player_nickname": info.get("player_nickname"),
+                    "jersey_number": info.get("jersey_number"),
                     "position": info.get("position", "Player"),
                     "x": round(avg_x, 2),
                     "y": round(avg_y, 2),
