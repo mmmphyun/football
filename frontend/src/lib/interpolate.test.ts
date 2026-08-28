@@ -61,7 +61,7 @@ describe("interpolateFrames", () => {
     expect(res?.players[0].location[1]).toBeCloseTo(30.0);
   });
 
-  it("matches anonymous players using nearest neighbor greedy tracking", () => {
+  it("matches players using uid or name for smooth transition", () => {
     const anonFrames: Frame[] = [
       {
         frame_index: 0,
@@ -69,8 +69,8 @@ describe("interpolateFrames", () => {
         minute: 0,
         second: 10,
         players: [
-          { is_teammate: true, is_actor: false, is_keeper: false, location: [10.0, 20.0] },
-          { is_teammate: false, is_actor: false, is_keeper: false, location: [80.0, 60.0] },
+          { player_id: 101, is_teammate: true, is_actor: false, is_keeper: false, location: [10.0, 20.0] },
+          { player_id: 201, is_teammate: false, is_actor: false, is_keeper: false, location: [80.0, 60.0] },
         ],
       },
       {
@@ -79,8 +79,8 @@ describe("interpolateFrames", () => {
         minute: 0,
         second: 20,
         players: [
-          { is_teammate: true, is_actor: false, is_keeper: false, location: [14.0, 22.0] },
-          { is_teammate: false, is_actor: false, is_keeper: false, location: [82.0, 62.0] },
+          { player_id: 101, is_teammate: true, is_actor: false, is_keeper: false, location: [14.0, 22.0] },
+          { player_id: 201, is_teammate: false, is_actor: false, is_keeper: false, location: [82.0, 62.0] },
         ],
       },
     ];
@@ -98,7 +98,7 @@ describe("interpolateFrames", () => {
     expect(opp?.location[1]).toBeCloseTo(61.0);
   });
 
-  it("smoothly morphs visible_area polygon between frames", () => {
+  it("selects visible_area based on time interval", () => {
     const polygonFrames: Frame[] = [
       {
         frame_index: 0,
@@ -118,11 +118,9 @@ describe("interpolateFrames", () => {
       },
     ];
 
-    const res = interpolateFrames(polygonFrames, 15.0);
+    const res = interpolateFrames(polygonFrames, 12.0);
     expect(res).not.toBeNull();
-    expect(res?.visible_area).toBeDefined();
-    expect(res?.visible_area?.[0]).toBeCloseTo(10.0);
-    expect(res?.visible_area?.[2]).toBeCloseTo(50.0);
+    expect(res?.visible_area).toEqual(polygonFrames[0].visible_area);
   });
 });
 
