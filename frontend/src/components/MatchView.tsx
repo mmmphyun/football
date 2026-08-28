@@ -46,7 +46,7 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const [selectedTeamId, setSelectedTeamId] = useState<number>(
     homeTeamId ?? Number(Object.keys(summary.teams)[0])
   );
-  const [selectedPhase, setSelectedPhase] = useState<TacticalPhase>("progression");
+  const [selectedPhase, setSelectedPhase] = useState<TacticalPhase>("overall");
   const [activeTab, setActiveTab] = useState<TacticalTab>("formation");
   const [selectedPlaybookPattern, setSelectedPlaybookPattern] =
     useState<PlaybookPattern | null>(null);
@@ -316,7 +316,21 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* 선발 공식 라인업 버튼 */}
+              <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                <button
+                  onClick={() => setSelectedPhase("overall")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "overall"
+                      ? "bg-slate-800 text-sky-300 border border-sky-400/80 shadow-lg shadow-sky-500/20"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  0. 선발 공식 라인업
+                </button>
+              </div>
+
               {/* 볼 소유 3단계 */}
               <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
                 <span className="text-[10px] font-bold text-emerald-400 uppercase self-center px-1.5 hidden sm:inline">
