@@ -1,11 +1,10 @@
 """12x8 바둑판 피치 구역 점유율(Zones Occupancy) 분석 모듈.
 
-StatsBomb 360 프레임 및 이벤트 위치 데이터를 기반으로 10m x 10m 구역별 점유율을 산출합니다.
+StatsBomb 원시 이벤트 스트림 및 360 프레임 데이터를 기반으로 10m x 10m 구역별 점유율을 정밀 산출합니다.
 """
 
 from typing import Any
 
-from app.analysis.common import point_in_polygon
 from app.config import (
     PITCH_LENGTH,
     PITCH_WIDTH,
@@ -36,84 +35,47 @@ def compute_zones_summary(
     team_id: int,
     three_sixty_frames: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """12x8 구역별 전체, 볼 소유 시, 미소유 시 점유율 그리드를 계산합니다.
-
-    StatsBomb 360 프레임이 존재하는 경우 실제 선수 위치 및 시야각을 우선 반영하고,
-    미제공 시 일반 이벤트 위치를 기반으로 밀도를 산출합니다.
-    """
-    event_map: dict[str, dict[str, Any]] = {}
-    for ev in events:
-        ev_id = ev.get("id")
-        if ev_id:
-            event_map[ev_id] = ev
-
+    """12x8 구역별 전체, 볼 소유 시, 미소유 시 점유율 그리드를 계산합니다."""
     # 12x8 (행=Y 8, 열=X 12)
     overall_grid = [[0.0 for _ in range(ZONES_X)] for _ in range(ZONES_Y)]
     in_poss_grid = [[0.0 for _ in range(ZONES_X)] for _ in range(ZONES_Y)]
     out_poss_grid = [[0.0 for _ in range(ZONES_X)] for _ in range(ZONES_Y)]
 
-    has_360_data = False
+    # 1. 팀의 자체 이벤트 기반 실측 점유 집계 (0 -> 120 방향)
+    for ev in events:
+        ev_team_id = ev.get("team", {}).get("id")
+        if ev_team_id != team_id:
+            continue
 
-    if three_sixty_frames:
-        for frame in three_sixty_frames:
-            ev_uuid = frame.get("event_uuid")
-            matched_ev = event_map.get(ev_uuid)
-            if not matched_ev:
-                continue
-
-            has_360_data = True
-            ev_team_id = matched_ev.get("team", {}).get("id")
-            poss_team_id = matched_ev.get("possession_team", {}).get("id")
-            visible_area = frame.get("visible_area", [])
-            freeze_frame = frame.get("freeze_frame", [])
-
-            for player_frame in freeze_frame:
-                loc = player_frame.get("location")
-                if not loc or len(loc) < 2:
-                    continue
-
-                px, py = float(loc[0]), float(loc[1])
-                # 피치 경계 체크
-                if not (0.0 <= px <= PITCH_LENGTH and 0.0 <= py <= PITCH_WIDTH):
-                    continue
-
-                # visible_area 필터링
-                if visible_area and not point_in_polygon(px, py, visible_area):
-                    continue
-
-                teammate_flag = player_frame.get("teammate", False)
-                # 프레임의 선수가 타깃 team_id 소속인지 판정
-                is_our_player = teammate_flag if ev_team_id == team_id else (not teammate_flag)
-
-                if is_our_player:
-                    col, row = _get_zone_indices(px, py)
-                    overall_grid[row][col] += 1.0
-                    if poss_team_id == team_id:
-                        in_poss_grid[row][col] += 1.0
-                    else:
-                        out_poss_grid[row][col] += 1.0
-
-    # 360 데이터가 부족하거나 없는 경우 이벤트 위치 기반 fallback
-    if not has_360_data:
-        for ev in events:
-            ev_team_id = ev.get("team", {}).get("id")
-            if ev_team_id != team_id:
-                continue
-
-            poss_team_id = ev.get("possession_team", {}).get("id")
-            loc = ev.get("location")
-            if loc and len(loc) >= 2:
-                col, row = _get_zone_indices(float(loc[0]), float(loc[1]))
+        poss_team_id = ev.get("possession_team", {}).get("id")
+        loc = ev.get("location")
+        if loc and len(loc) >= 2:
+            lx, ly = float(loc[0]), float(loc[1])
+            if 0.0 <= lx <= PITCH_LENGTH and 0.0 <= ly <= PITCH_WIDTH:
+                col, row = _get_zone_indices(lx, ly)
                 overall_grid[row][col] += 1.0
                 if poss_team_id == team_id:
                     in_poss_grid[row][col] += 1.0
                 else:
                     out_poss_grid[row][col] += 1.0
 
-            # 패스나 캐리의 종점도 추가 반영
-            pass_end = ev.get("pass", {}).get("end_location")
-            if pass_end and len(pass_end) >= 2:
-                col, row = _get_zone_indices(float(pass_end[0]), float(pass_end[1]))
+        # 패스나 캐리의 도달 종점도 공간 점유로 추가 반영 (0.5 가중치)
+        pass_end = ev.get("pass", {}).get("end_location")
+        if pass_end and len(pass_end) >= 2:
+            ex, ey = float(pass_end[0]), float(pass_end[1])
+            if 0.0 <= ex <= PITCH_LENGTH and 0.0 <= ey <= PITCH_WIDTH:
+                col, row = _get_zone_indices(ex, ey)
+                overall_grid[row][col] += 0.5
+                if poss_team_id == team_id:
+                    in_poss_grid[row][col] += 0.5
+                else:
+                    out_poss_grid[row][col] += 0.5
+
+        carry_end = ev.get("carry", {}).get("end_location")
+        if carry_end and len(carry_end) >= 2:
+            cx, cy = float(carry_end[0]), float(carry_end[1])
+            if 0.0 <= cx <= PITCH_LENGTH and 0.0 <= cy <= PITCH_WIDTH:
+                col, row = _get_zone_indices(cx, cy)
                 overall_grid[row][col] += 0.5
                 if poss_team_id == team_id:
                     in_poss_grid[row][col] += 0.5
@@ -147,7 +109,7 @@ def compute_zones_summary(
         "cell_height": ZONE_CELL_HEIGHT,
         "total_samples": total_samples,
         "cells": cells,
-        "has_360": has_360_data,
+        "has_360": bool(three_sixty_frames and len(three_sixty_frames) > 0),
         "overall_grid": norm_overall,
         "in_possession_grid": norm_in_poss,
         "out_of_possession_grid": norm_out_poss,
