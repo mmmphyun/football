@@ -1,5 +1,6 @@
 """StatsBomb Open Data 다운로더 및 디스크 캐싱 모듈."""
 
+import contextlib
 import json
 import logging
 import time
@@ -31,7 +32,8 @@ class StatsBombDownloader:
         self.raw_dir = raw_dir if raw_dir is not None else RAW_DATA_DIR
         self.timeout = timeout
         self.max_retries = max_retries
-        self.raw_dir.mkdir(parents=True, exist_ok=True)
+        with contextlib.suppress(FileExistsError):
+            self.raw_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_cache_path(self, relative_path: str) -> Path:
         """상대 경로에 대응하는 로컬 캐시 파일 경로를 반환합니다."""
@@ -51,7 +53,8 @@ class StatsBombDownloader:
     def _write_cache(self, relative_path: str, data: Any) -> None:
         """데이터를 로컬 디스크 캐시에 JSON 포맷으로 저장합니다."""
         cache_file = self._get_cache_path(relative_path)
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        with contextlib.suppress(FileExistsError):
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 

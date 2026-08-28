@@ -1,5 +1,6 @@
 """SQLite 기반 데이터베이스 스키마 정의 및 영속성 관리 모듈."""
 
+import contextlib
 import json
 import sqlite3
 from collections.abc import Generator
@@ -24,7 +25,8 @@ def get_db(db_path: Path | str | None = None) -> Generator[sqlite3.Connection]:
     디렉터리가 미존재할 경우 자동 생성합니다.
     """
     target_path = Path(db_path) if db_path is not None else DB_PATH
-    target_path.parent.mkdir(parents=True, exist_ok=True)
+    with contextlib.suppress(FileExistsError):
+        target_path.parent.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(str(target_path))
     conn.row_factory = _dict_factory
