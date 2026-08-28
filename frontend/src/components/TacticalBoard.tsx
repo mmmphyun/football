@@ -183,6 +183,23 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     y: number;
   } | null>(null);
 
+  const [hoveredPlayer, setHoveredPlayer] = useState<{
+    player_id: number;
+    player_name: string;
+    jersey_number?: number;
+    position?: string;
+    tactical_role?: string;
+    tactical_role_ko?: string;
+    tactical_role_desc?: string;
+    x: number;
+    y: number;
+    svgX: number;
+    svgY: number;
+    event_count?: number;
+    pass_count?: number;
+    pass_accuracy?: number;
+  } | null>(null);
+
   // 존 컬러 테마
   const getZoneFill = (ratio: number) => {
     const intensity = Math.min(1.0, ratio / maxZoneRatio);
@@ -1089,7 +1106,28 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 const r = Math.max(16, Math.min(24, 14 + (node.pass_count ?? 0) * 0.35));
                 const displayName = formatPlayerName(node.player_name, (node as any).player_nickname);
                 return (
-                  <g key={`pass-node-${node.player_id}`}>
+                  <g
+                    key={`pass-node-${node.player_id}`}
+                    className="cursor-pointer"
+                    onMouseEnter={() =>
+                      setHoveredPlayer({
+                        player_id: node.player_id,
+                        player_name: node.player_name,
+                        jersey_number: node.jersey_number,
+                        position: node.position,
+                        tactical_role: (node as any).tactical_role,
+                        tactical_role_ko: (node as any).tactical_role_ko,
+                        tactical_role_desc: (node as any).tactical_role_desc,
+                        x: node.x,
+                        y: node.y,
+                        svgX: nx,
+                        svgY: ny,
+                        pass_count: node.pass_count,
+                        pass_accuracy: node.pass_accuracy,
+                      })
+                    }
+                    onMouseLeave={() => setHoveredPlayer(null)}
+                  >
                     <circle
                       cx={nx}
                       cy={ny}
@@ -1097,7 +1135,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       fill="#0284c7"
                       stroke="#ffffff"
                       strokeWidth="2.5"
-                      className="drop-shadow-lg"
+                      className="drop-shadow-lg transition-transform duration-200 hover:scale-110"
                     />
                     <text
                       x={nx}
@@ -1200,18 +1238,36 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               return (
                 <g
                   key={`formation-player-${fp.player_id}`}
+                  className="cursor-pointer"
                   style={{
                     transform: `translate(${sx}px, ${sy}px)`,
                     transformBox: "fill-box",
                     transition: "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   }}
+                  onMouseEnter={() =>
+                    setHoveredPlayer({
+                      player_id: fp.player_id,
+                      player_name: fp.player_name,
+                      jersey_number: fp.jersey_number,
+                      position: fp.position,
+                      tactical_role: fp.tactical_role,
+                      tactical_role_ko: fp.tactical_role_ko,
+                      tactical_role_desc: fp.tactical_role_desc,
+                      x: fp.x,
+                      y: fp.y,
+                      svgX: sx,
+                      svgY: sy,
+                      event_count: fp.event_count,
+                    })
+                  }
+                  onMouseLeave={() => setHoveredPlayer(null)}
                 >
                   <circle
                     r="20"
                     fill={phaseColor}
                     stroke="#ffffff"
                     strokeWidth="3"
-                    className="drop-shadow-xl"
+                    className="drop-shadow-xl transition-transform duration-200 hover:scale-110"
                   />
                   <text
                     y="5"
@@ -1364,7 +1420,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </g>
         )}
 
-        {/* 10. 마우스 호버 툴팁 */}
+        {/* 10. 마우스 호버 툴팁 (구역 점유율) */}
         {showZones && hoveredZone && (
           <g
             transform={`translate(${Math.min(
@@ -1385,6 +1441,75 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             />
             <text x="0" y="1" fill="#ffffff" fontSize="12" fontWeight="bold" textAnchor="middle">
               {(hoveredZone.ratio * 100).toFixed(2)}% ({hoveredZone.count}회)
+            </text>
+          </g>
+        )}
+
+        {/* 11. 마우스 호버 툴팁 (선수 전술 역할 및 상세 정보 카드) */}
+        {hoveredPlayer && (
+          <g
+            transform={`translate(${Math.min(
+              SVG_WIDTH - 150,
+              Math.max(150, hoveredPlayer.svgX)
+            )}, ${Math.max(75, hoveredPlayer.svgY - 60)})`}
+            className="pointer-events-none"
+          >
+            <rect
+              x="-135"
+              y="-48"
+              width="270"
+              height="88"
+              rx="8"
+              fill="rgba(15, 23, 42, 0.96)"
+              stroke="#38bdf8"
+              strokeWidth="1.8"
+              className="drop-shadow-2xl"
+            />
+            {/* 상단: 등번호 + 이름 + 선발 포지션 */}
+            <text x="-122" y="-27" fill="#38bdf8" fontSize="13" fontWeight="900">
+              #{hoveredPlayer.jersey_number ?? "-"}
+            </text>
+            <text x="-95" y="-27" fill="#ffffff" fontSize="13" fontWeight="bold">
+              {hoveredPlayer.player_name}
+            </text>
+            <text x="122" y="-27" fill="#94a3b8" fontSize="11" textAnchor="end">
+              {hoveredPlayer.position ?? "선수"}
+            </text>
+
+            <line
+              x1="-125"
+              y1="-18"
+              x2="125"
+              y2="-18"
+              stroke="rgba(51, 65, 85, 0.9)"
+              strokeWidth="1"
+            />
+
+            {/* 중단: 실측 전술 역할 뱃지 */}
+            <rect
+              x="-122"
+              y="-12"
+              width="244"
+              height="20"
+              rx="4"
+              fill="rgba(14, 165, 233, 0.22)"
+              stroke="rgba(56, 189, 248, 0.4)"
+              strokeWidth="0.8"
+            />
+            <text x="-114" y="2" fill="#38bdf8" fontSize="11" fontWeight="bold">
+              {hoveredPlayer.tactical_role_ko ?? hoveredPlayer.tactical_role ?? "전술 역할"}
+            </text>
+
+            {/* 하단: 실측 좌표 및 상세 지표 */}
+            <text x="-122" y="26" fill="#cbd5e1" fontSize="10.5">
+              실측: ({hoveredPlayer.x}m, {hoveredPlayer.y}m)
+            </text>
+            <text x="122" y="26" fill="#e2e8f0" fontSize="10.5" fontWeight="bold" textAnchor="end">
+              {hoveredPlayer.event_count !== undefined
+                ? `이벤트 ${hoveredPlayer.event_count}회`
+                : hoveredPlayer.pass_count !== undefined
+                ? `패스 성공 ${hoveredPlayer.pass_count}회 (${((hoveredPlayer.pass_accuracy ?? 1) * 100).toFixed(0)}%)`
+                : ""}
             </text>
           </g>
         )}

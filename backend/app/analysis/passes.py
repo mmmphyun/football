@@ -72,8 +72,12 @@ def compute_pass_network(
                     if is_prog:
                         pass_prog_counts[(passer_id, recipient_id)] += 1
 
-    # 노드 구성 (패스에 참여한 선수들)
-    nodes: list[dict[str, Any]] = []
+    starting_xi = set(team_meta.get("starting_xi", []))
+
+    # 노드 구성 (선발 11명 중심)
+    starters_nodes: list[dict[str, Any]] = []
+    other_nodes: list[dict[str, Any]] = []
+
     for p_id, p_info in players_meta.items():
         locs = player_pass_locs.get(p_id, [])
         attempts = player_pass_attempts.get(p_id, 0)
@@ -85,28 +89,48 @@ def compute_pass_network(
         else:
             avg_x, avg_y = 60.0, 40.0
 
-        if attempts > 0 or p_info.get("is_starter"):
-            disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
-            nodes.append(
-                {
-                    "player_id": p_id,
-                    "player_name": disp_name,
-                    "player_nickname": p_info.get("player_nickname"),
-                    "full_name": p_info.get("player_name"),
-                    "jersey_number": p_info.get("jersey_number"),
-                    "position": p_info.get("primary_position"),
-                    "is_starter": p_info.get("is_starter", False),
-                    "x": avg_x,
-                    "y": avg_y,
-                    "pass_count": completions,
-                    "pass_attempts": attempts,
-                    "pass_completions": completions,
-                    "pass_accuracy": round(completions / attempts, 3) if attempts > 0 else 0.0,
-                }
-            )
+        disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
+        node_obj = {
+            "player_id": p_id,
+            "player_name": disp_name,
+            "player_nickname": p_info.get("player_nickname"),
+            "full_name": p_info.get("player_name"),
+            "jersey_number": p_info.get("jersey_number"),
+            "position": p_info.get("primary_position"),
+            "is_starter": p_id in starting_xi,
+            "x": avg_x,
+            "y": avg_y,
+            "pass_count": completions,
+            "pass_attempts": attempts,
+            "pass_completions": completions,
+            "pass_accuracy": round(completions / attempts, 3) if attempts > 0 else 0.0,
+        }
 
-    # 엣지 구성 및 상위 N개 추출
-    sorted_pairs = sorted(pass_counts.items(), key=lambda item: item[1], reverse=True)
+        if p_id in starting_xi:
+            starters_nodes.append(node_obj)
+        elif attempts > 0:
+            other_nodes.append(node_obj)
+
+    # 선발 11명 정원 준수 (11명 초과 방지)
+    if len(starters_nodes) >= 11:
+        nodes = starters_nodes[:11]
+    else:
+        other_nodes.sort(key=lambda n: n["pass_attempts"], reverse=True)
+        nodes = (starters_nodes + other_nodes)[:11]
+
+    valid_node_ids = {n["player_id"] for n in nodes}
+
+    # 엣지 구성 및 상위 N개 추출 (유효 11명 노드 간 연결)
+    sorted_pairs = sorted(
+        [
+            ((src, dst), cnt)
+            for (src, dst), cnt in pass_counts.items()
+            if src in valid_node_ids and dst in valid_node_ids
+        ],
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
     edges: list[dict[str, Any]] = []
     for (src, dst), count in sorted_pairs[:top_edges_limit]:
         src_name = players_meta.get(src, {}).get("player_name", str(src))
