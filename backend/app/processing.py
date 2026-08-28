@@ -82,7 +82,8 @@ def process_match(
     dl = downloader if downloader is not None else StatsBombDownloader()
 
     try:
-        bundle = dl.fetch_full_match_bundle(match_id, force=force)
+        # 원본 데이터는 로컬 디스크 캐시(data/raw/)를 우선적으로 사용 (불필요한 외부 네트워크 다운로드 방지)
+        bundle = dl.fetch_full_match_bundle(match_id, force=False)
         events = bundle.get("events", [])
         lineups = bundle.get("lineups", [])
         three_sixty = bundle.get("three_sixty")
