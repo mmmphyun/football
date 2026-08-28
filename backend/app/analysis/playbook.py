@@ -1,10 +1,10 @@
 """학계 연구 기반 5대 시그니처 공격 패턴 플레이북 분석 모듈.
 
-연속된 패스/캐리/슈팅 공격 시퀀스를 탐색하고 클러스터링하여
-스포츠 데이터 과학 학계(MIT Sloan / StatsBomb) 연구 기준에 부합하는
-5대 시그니처 공격 전개 패턴을 자동 추출하고 D3 시각화 드로잉 데이터를 생성합니다.
+연속된 패스/캐리/슈팅 공격 시퀀스를 포제션(Possession) 체인 단위로 분할하고,
+패스 완료 무결성을 검증하여 5대 시그니처 공격 전개 패턴을 엄밀하게 자동 추출합니다.
 """
 
+from collections import defaultdict
 from typing import Any
 
 from app.analysis.common import event_time, is_completed_pass
@@ -30,18 +30,20 @@ from app.config import (
     POCKET_X_MIN,
     POCKET_Y_MAX,
     POCKET_Y_MIN,
-    THIRD_MAN_MAX_INTERVAL_SEC,
 )
+
+# 3자 연계 판정 현실적 시간 윈도우 (초)
+THIRD_MAN_WINDOW_SEC: float = 4.0
 
 
 def _classify_attack_sequence(
     seq_events: list[dict[str, Any]],
 ) -> tuple[str, str, str, str] | None:
     """공격 시퀀스의 공간적/전술적 특성을 바탕으로 5대 시그니처 패턴 유형을 판별합니다."""
-    if not seq_events:
+    if len(seq_events) < 2:
         return None
 
-    # 1) 전방 압박 탈취 즉시 속공 슛 (High-turnover Direct Strike) 판정
+    # 1) 전방 압박 탈취 즉시 속공 슛 (High-turnover Direct Strike)
     first_ev = seq_events[0]
     first_type = first_ev.get("type", {}).get("name", "")
     first_loc = first_ev.get("location")
@@ -54,7 +56,7 @@ def _classify_attack_sequence(
         last_ev = seq_events[-1]
         if last_ev.get("type", {}).get("name") == "Shot":
             duration = event_time(last_ev) - event_time(first_ev)
-            if duration <= HIGHTURNOVER_MAX_TIME_SEC and len(seq_events) <= 5:
+            if duration <= HIGHTURNOVER_MAX_TIME_SEC + 1.0 and len(seq_events) <= 6:
                 return (
                     "high_turnover_strike",
                     "High-turnover Direct Strike",
@@ -76,50 +78,56 @@ def _classify_attack_sequence(
 
         sx, sy = float(loc[0]), float(loc[1])
 
-        # 4) 후방 딥 라인브레이킹 종패스 판정
         if type_name == "Pass":
+            # 패스가 성공하지 못한 중간 패스는 패턴 기점으로 불인정
+            if not is_completed_pass(ev):
+                continue
+
             end_loc = ev.get("pass", {}).get("end_location")
-            if end_loc and len(end_loc) >= 2:
-                ex, ey = float(end_loc[0]), float(end_loc[1])
-                dx = ex - sx
-                if (
-                    sx <= DEEP_LINEBREAK_START_MAX_X
-                    and ex >= DEEP_LINEBREAK_END_MIN_X
-                    and dx >= DEEP_LINEBREAK_MIN_DX
-                ):
-                    has_deep_linebreak = True
+            if not end_loc or len(end_loc) < 2:
+                continue
 
-                # 1) 측면 과부하 & 컷백 판정
-                if (
-                    (sy <= CUTBACK_FLANK_Y_TOP or sy >= CUTBACK_FLANK_Y_BOTTOM)
-                    and sx >= CUTBACK_FLANK_X_MIN
-                    and CUTBACK_TARGET_Y_MIN <= ey <= CUTBACK_TARGET_Y_MAX
-                    and ex >= CUTBACK_TARGET_X_MIN
-                ):
-                    has_cutback = True
+            ex, ey = float(end_loc[0]), float(end_loc[1])
+            dx = ex - sx
 
-                # 2) 포켓(Zone 14) 3자 연계 침투 판정
-                if (
-                    POCKET_X_MIN <= ex <= POCKET_X_MAX
-                    and POCKET_Y_MIN <= ey <= POCKET_Y_MAX
-                    and i + 1 < n
-                ):
-                    next_ev = seq_events[i + 1]
-                    t_diff = event_time(next_ev) - event_time(ev)
-                    if t_diff <= THIRD_MAN_MAX_INTERVAL_SEC:
-                        has_pocket_third_man = True
+            # 4) 후방 딥 라인브레이킹 종패스 판정
+            if (
+                sx <= DEEP_LINEBREAK_START_MAX_X
+                and ex >= DEEP_LINEBREAK_END_MIN_X
+                and dx >= DEEP_LINEBREAK_MIN_DX
+            ):
+                has_deep_linebreak = True
 
-                # 3) 하프스페이스 언더래핑 & 얼리크로스 판정
-                in_left_hs = HALFSPACE_Y_LEFT_MIN <= sy <= HALFSPACE_Y_LEFT_MAX
-                in_right_hs = HALFSPACE_Y_RIGHT_MIN <= sy <= HALFSPACE_Y_RIGHT_MAX
-                if (
-                    (in_left_hs or in_right_hs)
-                    and HALFSPACE_X_MIN <= sx <= HALFSPACE_X_MAX
-                    and ex >= 95.0
-                    and 25.0 <= ey <= 55.0
-                ):
-                    has_halfspace_underlap = True
+            # 1) 측면 과부하 & 컷백 판정 (음의 패스: ex <= sx + 3.0)
+            in_flank = (sy <= CUTBACK_FLANK_Y_TOP or sy >= CUTBACK_FLANK_Y_BOTTOM) and sx >= CUTBACK_FLANK_X_MIN
+            target_in_box = CUTBACK_TARGET_Y_MIN <= ey <= CUTBACK_TARGET_Y_MAX and ex >= CUTBACK_TARGET_X_MIN
+            is_negative_pass = ex <= sx + 3.0
+            if in_flank and target_in_box and is_negative_pass:
+                has_cutback = True
 
+            # 2) 포켓(Zone 14) 3자 연계 침투 판정
+            if (
+                POCKET_X_MIN <= ex <= POCKET_X_MAX
+                and POCKET_Y_MIN <= ey <= POCKET_Y_MAX
+                and i + 1 < n
+            ):
+                next_ev = seq_events[i + 1]
+                t_diff = event_time(next_ev) - event_time(ev)
+                if t_diff <= THIRD_MAN_WINDOW_SEC:
+                    has_pocket_third_man = True
+
+            # 3) 하프스페이스 언더래핑 & 얼리크로스 판정
+            in_left_hs = HALFSPACE_Y_LEFT_MIN <= sy <= HALFSPACE_Y_LEFT_MAX
+            in_right_hs = HALFSPACE_Y_RIGHT_MIN <= sy <= HALFSPACE_Y_RIGHT_MAX
+            if (
+                (in_left_hs or in_right_hs)
+                and HALFSPACE_X_MIN <= sx <= HALFSPACE_X_MAX
+                and ex >= 95.0
+                and 24.0 <= ey <= 56.0
+            ):
+                has_halfspace_underlap = True
+
+    # 우선순위 부여 (특화 패턴 우선)
     if has_cutback:
         return (
             "side_overload_cutback",
@@ -152,7 +160,6 @@ def _classify_attack_sequence(
             "최후방 빌드업 라인에서 상대 미드필드 블록을 한 번에 관통하여 2선으로 연결하는 다이렉트 롱패스",
         )
 
-    # 5대 시그니처 패턴 조건을 만족하지 않는 일반 볼 소유/단순 빌드업 시퀀스는 제외
     return None
 
 
@@ -160,37 +167,58 @@ def compute_playbook_summary(
     events: list[dict[str, Any]],
     team_id: int,
 ) -> list[dict[str, Any]]:
-    """경기의 공격 시퀀스를 분석하여 5대 시그니처 공격 플레이북을 산출합니다."""
-    # 1. 팀 볼 소유 시퀀스 분할 (연속된 액션 체인)
-    sequences: list[list[dict[str, Any]]] = []
-    current_seq: list[dict[str, Any]] = []
-
+    """경기의 공격 시퀀스를 포제션 체인 단위로 분석하여 5대 시그니처 공격 플레이북을 산출합니다."""
+    # 1. 포제션(Possession) 번호 기반 시퀀스 그룹화
+    possession_groups: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for ev in events:
-        ev_team_id = ev.get("team", {}).get("id")
-        type_name = ev.get("type", {}).get("name", "")
+        poss_id = ev.get("possession")
+        if poss_id is not None:
+            possession_groups[poss_id].append(ev)
 
-        if ev_team_id == team_id and type_name in {
-            "Pass",
-            "Carry",
-            "Shot",
-            "Dribble",
-            "Ball Recovery",
-            "Interception",
-            "Tackle",
-        }:
-            current_seq.append(ev)
-            if type_name == "Shot":
-                sequences.append(current_seq)
+    # 2. 팀의 유효 공격 시퀀스 체인 추출 (미완료 패스 시 체인 분리)
+    sequences: list[list[dict[str, Any]]] = []
+
+    for _poss_id, p_events in sorted(possession_groups.items()):
+        current_seq: list[dict[str, Any]] = []
+
+        for ev in p_events:
+            ev_team_id = ev.get("team", {}).get("id")
+            type_name = ev.get("type", {}).get("name", "")
+
+            if ev_team_id == team_id and type_name in {
+                "Pass",
+                "Carry",
+                "Shot",
+                "Dribble",
+                "Ball Recovery",
+                "Interception",
+                "Tackle",
+            }:
+                if type_name == "Pass":
+                    if is_completed_pass(ev):
+                        current_seq.append(ev)
+                    else:
+                        # 패스 실패 시 해당 패스를 끝으로 시퀀스 종료
+                        current_seq.append(ev)
+                        if len(current_seq) >= 2:
+                            sequences.append(current_seq)
+                        current_seq = []
+                elif type_name == "Shot":
+                    current_seq.append(ev)
+                    if len(current_seq) >= 2:
+                        sequences.append(current_seq)
+                    current_seq = []
+                else:
+                    current_seq.append(ev)
+            else:
+                if len(current_seq) >= 2:
+                    sequences.append(current_seq)
                 current_seq = []
-        else:
-            if len(current_seq) >= 2:
-                sequences.append(current_seq)
-            current_seq = []
 
-    if len(current_seq) >= 2:
-        sequences.append(current_seq)
+        if len(current_seq) >= 2:
+            sequences.append(current_seq)
 
-    # 2. 5대 패턴 버킷 초기화
+    # 3. 5대 패턴 버킷 초기화
     pattern_buckets: dict[str, dict[str, Any]] = {
         "side_overload_cutback": {
             "pattern_id": "side_overload_cutback",
@@ -257,7 +285,7 @@ def compute_playbook_summary(
                 seq_xg += float(ev.get("shot", {}).get("statsbomb_xg", 0.0) or 0.0)
         bucket["total_xg"] = round(bucket["total_xg"] + seq_xg, 3)
 
-        # 시각화용 이벤트 변환 (최대 5개 시퀀스 보관)
+        # 시각화용 실측 이벤트 변환 (최대 5개 시퀀스 보관)
         if len(bucket["sequences"]) < 5:
             seq_event_draws: list[dict[str, Any]] = []
             for ev in seq:
@@ -347,179 +375,12 @@ def compute_playbook_summary(
             if seq_event_draws:
                 bucket["sequences"].append(seq_event_draws)
 
-    # 3. 기본 더미 궤적 보정 (데이터가 적은 경기에서도 5대 전술 시각화 보장)
-    dummy_draws = {
-        "side_overload_cutback": [
-            {
-                "type": "Pass",
-                "start_x": 65.0,
-                "start_y": 70.0,
-                "end_x": 95.0,
-                "end_y": 72.0,
-                "player_name": "Right Winger",
-                "completed": True,
-            },
-            {
-                "type": "Pass",
-                "start_x": 95.0,
-                "start_y": 72.0,
-                "end_x": 105.0,
-                "end_y": 42.0,
-                "player_name": "Right Back",
-                "completed": True,
-            },
-            {
-                "type": "Shot",
-                "start_x": 105.0,
-                "start_y": 42.0,
-                "end_x": 120.0,
-                "end_y": 40.0,
-                "player_name": "Striker",
-                "xg": 0.35,
-                "outcome": "Saved",
-            },
-        ],
-        "pocket_third_man": [
-            {
-                "type": "Pass",
-                "start_x": 55.0,
-                "start_y": 40.0,
-                "end_x": 82.0,
-                "end_y": 40.0,
-                "player_name": "Central Midfielder",
-                "completed": True,
-            },
-            {
-                "type": "Pass",
-                "start_x": 82.0,
-                "start_y": 40.0,
-                "end_x": 104.0,
-                "end_y": 36.0,
-                "player_name": "Attacking Midfielder",
-                "completed": True,
-            },
-            {
-                "type": "Shot",
-                "start_x": 104.0,
-                "start_y": 36.0,
-                "end_x": 120.0,
-                "end_y": 39.0,
-                "player_name": "Center Forward",
-                "xg": 0.45,
-                "outcome": "Goal",
-            },
-        ],
-        "halfspace_underlap": [
-            {
-                "type": "Pass",
-                "start_x": 60.0,
-                "start_y": 12.0,
-                "end_x": 75.0,
-                "end_y": 24.0,
-                "player_name": "Left Winger",
-                "completed": True,
-            },
-            {
-                "type": "Carry",
-                "start_x": 75.0,
-                "start_y": 24.0,
-                "end_x": 85.0,
-                "end_y": 22.0,
-                "player_name": "Inverted Fullback",
-                "completed": True,
-            },
-            {
-                "type": "Pass",
-                "start_x": 85.0,
-                "start_y": 22.0,
-                "end_x": 106.0,
-                "end_y": 44.0,
-                "player_name": "Inverted Fullback",
-                "completed": True,
-            },
-            {
-                "type": "Shot",
-                "start_x": 106.0,
-                "start_y": 44.0,
-                "end_x": 120.0,
-                "end_y": 41.0,
-                "player_name": "Striker",
-                "xg": 0.38,
-                "outcome": "Goal",
-            },
-        ],
-        "deep_line_break": [
-            {
-                "type": "Pass",
-                "start_x": 35.0,
-                "start_y": 35.0,
-                "end_x": 85.0,
-                "end_y": 45.0,
-                "player_name": "Center Back",
-                "completed": True,
-            },
-            {
-                "type": "Carry",
-                "start_x": 85.0,
-                "start_y": 45.0,
-                "end_x": 98.0,
-                "end_y": 42.0,
-                "player_name": "Attacking Midfielder",
-                "completed": True,
-            },
-            {
-                "type": "Shot",
-                "start_x": 98.0,
-                "start_y": 42.0,
-                "end_x": 120.0,
-                "end_y": 40.0,
-                "player_name": "Attacking Midfielder",
-                "xg": 0.28,
-                "outcome": "Saved",
-            },
-        ],
-        "high_turnover_strike": [
-            {
-                "type": "Ball Recovery",
-                "start_x": 82.0,
-                "start_y": 55.0,
-                "end_x": 82.0,
-                "end_y": 55.0,
-                "player_name": "High Pressing Winger",
-                "completed": True,
-            },
-            {
-                "type": "Pass",
-                "start_x": 82.0,
-                "start_y": 55.0,
-                "end_x": 102.0,
-                "end_y": 42.0,
-                "player_name": "High Pressing Winger",
-                "completed": True,
-            },
-            {
-                "type": "Shot",
-                "start_x": 102.0,
-                "start_y": 42.0,
-                "end_x": 120.0,
-                "end_y": 40.0,
-                "player_name": "Center Forward",
-                "xg": 0.48,
-                "outcome": "Goal",
-            },
-        ],
-    }
-
-    # 4. 해당 경기에서 실제로 발생한 패턴(occurrences > 0)만 추출하여 발생 횟수 및 xG 기준 정렬
+    # 4. 실측 발생 패턴(occurrences > 0)만 추출하여 발생 횟수 및 xG 기준 정렬
     results = [b for b in pattern_buckets.values() if b["occurrences"] > 0]
     results.sort(key=lambda p: (p["occurrences"], p["total_xg"]), reverse=True)
 
-    # 공격 이벤트가 극단적으로 적어 실측 패턴이 0개인 경우에만 더미 궤적을 가진 기본 패턴 1종 폴백
+    # 발생한 패턴이 0개인 경우 전체 5개 패턴 템플릿 반환
     if not results:
-        fallback_pattern = pattern_buckets.get("side_overload_cutback")
-        if fallback_pattern:
-            if not fallback_pattern["sequences"] and "side_overload_cutback" in dummy_draws:
-                fallback_pattern["sequences"] = [dummy_draws["side_overload_cutback"]]
-            results = [fallback_pattern]
+        results = list(pattern_buckets.values())
 
     return results
