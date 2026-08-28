@@ -20,7 +20,45 @@ function lerp(a: number, b: number, t: number): number {
 }
 
 /**
- * 카메라 시야각 다각형(Visible Area Polygon)을 부드럽게 연속 보간(Morphing)합니다.
+ * 다각형의 무게중심을 계산합니다.
+ */
+function getPolygonCenter(poly: number[]): [number, number] {
+  let sumX = 0;
+  let sumY = 0;
+  const count = poly.length / 2;
+  for (let i = 0; i < poly.length; i += 2) {
+    sumX += poly[i];
+    sumY += poly[i + 1];
+  }
+  return [sumX / count, sumY / count];
+}
+
+/**
+ * 다각형 꼭짓점들을 중심점 기준 각도순으로 정렬하여 회전 꼬임을 방지합니다.
+ */
+function sortPolygonPointsByAngle(poly: number[]): number[] {
+  if (poly.length < 6) return poly;
+  const [cx, cy] = getPolygonCenter(poly);
+  const pts: Array<{ x: number; y: number; angle: number }> = [];
+
+  for (let i = 0; i < poly.length; i += 2) {
+    const x = poly[i];
+    const y = poly[i + 1];
+    const angle = Math.atan2(y - cy, x - cx);
+    pts.push({ x, y, angle });
+  }
+
+  pts.sort((a, b) => a.angle - b.angle);
+
+  const res: number[] = [];
+  for (const p of pts) {
+    res.push(p.x, p.y);
+  }
+  return res;
+}
+
+/**
+ * 카메라 시야각 다각형(Visible Area Polygon)을 꼬임 없이 연속 보간합니다.
  */
 function interpolatePolygon(
   p1?: number[],
@@ -28,23 +66,15 @@ function interpolatePolygon(
   alpha: number = 0.5
 ): number[] | undefined {
   if (!p1 && !p2) return undefined;
-  if (!p1) return p2;
-  if (!p2) return p1;
-  if (p1.length === 0) return p2;
-  if (p2.length === 0) return p1;
+  if (!p1 || p1.length < 6) return p2;
+  if (!p2 || p2.length < 6) return p1;
 
-  // 꼭짓점 수가 동일한 경우 점별 1:1 선형 보간
-  if (p1.length === p2.length) {
-    const res: number[] = new Array(p1.length);
-    for (let i = 0; i < p1.length; i++) {
-      res[i] = lerp(p1[i], p2[i], alpha);
-    }
-    return res;
-  }
+  // 두 다각형의 시작 각도를 일치시키기 위해 중심점 기준 각도 정렬
+  const sorted1 = sortPolygonPointsByAngle(p1);
+  const sorted2 = sortPolygonPointsByAngle(p2);
 
-  // 꼭짓점 수가 다른 경우: 인덱스 비례 리샘플링 보간
-  const count1 = p1.length / 2;
-  const count2 = p2.length / 2;
+  const count1 = sorted1.length / 2;
+  const count2 = sorted2.length / 2;
   const targetCount = Math.max(count1, count2);
   const res: number[] = new Array(targetCount * 2);
 
@@ -52,8 +82,8 @@ function interpolatePolygon(
     const idx1 = Math.min(Math.floor((i / targetCount) * count1), count1 - 1) * 2;
     const idx2 = Math.min(Math.floor((i / targetCount) * count2), count2 - 1) * 2;
 
-    res[i * 2] = lerp(p1[idx1], p2[idx2], alpha);
-    res[i * 2 + 1] = lerp(p1[idx1 + 1], p2[idx2 + 1], alpha);
+    res[i * 2] = lerp(sorted1[idx1], sorted2[idx2], alpha);
+    res[i * 2 + 1] = lerp(sorted1[idx1 + 1], sorted2[idx2 + 1], alpha);
   }
 
   return res;
@@ -126,7 +156,7 @@ export function interpolateFrames(
     ballLoc = f1.ball_location || f2.ball_location;
   }
 
-  // 2. 선수 위치 보간 (ID 매칭 우선 + 익명 선수 그리디 근접 거리 매칭)
+  // 2. 선수 위치 보간 (선수 증식 완전 차단: 팀당 11명 상한)
   const f2PlayerMap = new Map<number, FramePlayer>();
   const f2Anonymous: FramePlayer[] = [];
 
@@ -138,7 +168,7 @@ export function interpolateFrames(
     }
   }
 
-  const interpolatedPlayers: FramePlayer[] = [];
+  const rawInterpolated: FramePlayer[] = [];
   const processedF2Ids = new Set<number>();
   const f1Anonymous: FramePlayer[] = [];
 
@@ -167,7 +197,7 @@ export function interpolateFrames(
         predLoc = p1.pred_location || p2.pred_location;
       }
 
-      interpolatedPlayers.push({
+      rawInterpolated.push({
         ...p1,
         location: loc,
         pred_location: predLoc,
@@ -175,23 +205,24 @@ export function interpolateFrames(
     } else if (p1.player_id === undefined || p1.player_id === null) {
       f1Anonymous.push(p1);
     } else {
-      // f2에 없는 선수는 f1 위치 유지
-      interpolatedPlayers.push(p1);
+      // f2에 없는 선수는 alpha < 0.5일 때만 유지
+      if (clampedAlpha < 0.5) {
+        rawInterpolated.push(p1);
+      }
     }
   }
 
-  // 2-2. 익명(Anonymous/Inferred) 선수 간 유클리드 거리 기반 그리디 근접 매칭
+  // 2-2. 익명 선수 간 최근접 거리 매칭
   const usedF2AnonIdx = new Set<number>();
 
   for (const p1 of f1Anonymous) {
     let bestIdx = -1;
-    let minDist = 15.0; // 15m 이내 가장 가까운 동일 팀/키퍼 선수와 매칭 (대각선 텔레포트 방지)
+    let minDist = 12.0;
 
     for (let j = 0; j < f2Anonymous.length; j++) {
       if (usedF2AnonIdx.has(j)) continue;
       const p2 = f2Anonymous[j];
 
-      // 동일 팀 및 동일 키퍼 여부 일치 확인
       if (p1.is_teammate !== p2.is_teammate || p1.is_keeper !== p2.is_keeper) {
         continue;
       }
@@ -215,31 +246,37 @@ export function interpolateFrames(
         lerp(p1.location[1], p2.location[1], clampedAlpha),
       ];
 
-      interpolatedPlayers.push({
+      rawInterpolated.push({
         ...p1,
         location: loc,
       });
-    } else {
-      // 매칭되지 않은 익명 선수는 현 위치 유지
-      interpolatedPlayers.push(p1);
+    } else if (clampedAlpha < 0.5) {
+      rawInterpolated.push(p1);
     }
   }
 
-  // 2-3. f2에 새로 등장한 선수 추가
-  for (const p2 of f2.players) {
-    if (
-      p2.player_id !== undefined &&
-      p2.player_id !== null &&
-      !processedF2Ids.has(p2.player_id)
-    ) {
-      interpolatedPlayers.push(p2);
+  // 2-3. f2에 새로 등장한 선수는 alpha >= 0.5일 때 추가
+  if (clampedAlpha >= 0.5) {
+    for (const p2 of f2.players) {
+      if (
+        p2.player_id !== undefined &&
+        p2.player_id !== null &&
+        !processedF2Ids.has(p2.player_id)
+      ) {
+        rawInterpolated.push(p2);
+      }
+    }
+    for (let j = 0; j < f2Anonymous.length; j++) {
+      if (!usedF2AnonIdx.has(j)) {
+        rawInterpolated.push(f2Anonymous[j]);
+      }
     }
   }
-  for (let j = 0; j < f2Anonymous.length; j++) {
-    if (!usedF2AnonIdx.has(j)) {
-      interpolatedPlayers.push(f2Anonymous[j]);
-    }
-  }
+
+  // 2-4. 팀당 11명(총 22명) 엄격한 상한 필터링 (선수 증식 완벽 방지)
+  const tmPlayers = rawInterpolated.filter((p) => p.is_teammate).slice(0, 11);
+  const oppPlayers = rawInterpolated.filter((p) => !p.is_teammate).slice(0, 11);
+  const finalInterpolatedPlayers = [...tmPlayers, ...oppPlayers];
 
   // 3. 카메라 시야각 다각형 연속 보간
   const interpolatedVisArea = interpolatePolygon(
@@ -252,10 +289,11 @@ export function interpolateFrames(
     timestamp_sec: currentSec,
     ball_location: ballLoc,
     visible_area: interpolatedVisArea,
-    players: interpolatedPlayers,
+    players: finalInterpolatedPlayers,
     passing_lanes: clampedAlpha < 0.5 ? f1.passing_lanes : f2.passing_lanes,
     description: clampedAlpha < 0.5 ? f1.description : f2.description,
     minute: clampedAlpha < 0.5 ? f1.minute : f2.minute,
     second: clampedAlpha < 0.5 ? f1.second : f2.second,
   };
 }
+
