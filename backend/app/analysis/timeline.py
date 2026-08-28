@@ -153,9 +153,46 @@ def compute_timeline_summary(
                 }
             )
 
-        # 활동량(이벤트 참여 횟수) 상위 최대 11명으로 정원 엄수 (교체 출전 선수로 인한 증식 방지)
-        slice_players.sort(key=lambda p: p["event_count"], reverse=True)
-        slice_players = slice_players[:11]
+        # 6-1. 골키퍼 1명 의무 보장 및 필드 플레이어 상위 10명 선별 (총 11명 정원 엄수)
+        gk_players: list[dict[str, Any]] = []
+        field_players: list[dict[str, Any]] = []
+
+        for p in slice_players:
+            p_meta = players_meta.get(p["player_id"], {})
+            pos_id = p_meta.get("primary_position_id")
+            pos_name = str(p.get("position", "")).lower()
+            if pos_id == 1 or "goalkeeper" in pos_name:
+                gk_players.append(p)
+            else:
+                field_players.append(p)
+
+        # 구간 내 골키퍼 이벤트가 없는 경우 선발 골키퍼를 앵커 위치(x=11.0, y=40.0)로 보장
+        selected_gk: dict[str, Any] | None = None
+        if gk_players:
+            gk_players.sort(key=lambda p: p["event_count"], reverse=True)
+            selected_gk = gk_players[0]
+        else:
+            # players_meta에서 선발 골키퍼 탐색
+            for p_id, p_info in players_meta.items():
+                if p_info.get("primary_position_id") == 1 or p_info.get("primary_position") == "Goalkeeper":
+                    disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Goalkeeper")
+                    selected_gk = {
+                        "player_id": p_id,
+                        "player_name": disp_name,
+                        "player_nickname": p_info.get("player_nickname"),
+                        "jersey_number": p_info.get("jersey_number"),
+                        "position": "Goalkeeper",
+                        "x": 11.0,
+                        "y": 40.0,
+                        "event_count": 0,
+                    }
+                    break
+
+        field_players.sort(key=lambda p: p["event_count"], reverse=True)
+        top_field = field_players[:10]
+
+        final_slice_players = ([selected_gk] if selected_gk else []) + top_field
+        slice_players = final_slice_players[:11]
 
         # 7. 구간 내 주요 이벤트 (골, 옐로/레드카드, 슛)
         key_events = []

@@ -92,8 +92,14 @@ def test_match_summary_invariants(
             assert "label" in sl
             assert 0.0 <= sl["possession_pct"] <= 100.0
             assert 10.0 <= sl["defensive_line_height"] <= 90.0
-            if "players" in sl:
+            if "players" in sl and sl["players"]:
                 assert len(sl["players"]) <= 11
+                # 골키퍼 1명 의무 포함 검증
+                assert any(
+                    p.get("position") == "Goalkeeper"
+                    or "goalkeeper" in str(p.get("position", "")).lower()
+                    for p in sl["players"]
+                )
 
         # 4. 압박 트랩 및 PPDA 무결성
         pressure = t_data.get("pressure", {})
