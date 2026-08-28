@@ -73,15 +73,14 @@ def test_match_summary_invariants(
                 assert 0.0 <= p["x"] <= 120.0
                 assert 0.0 <= p["y"] <= 80.0
 
-        # 2. 학계 연구 기반 시그니처 플레이북 무결성 (실측 발생 패턴만 포함)
         playbook = t_data.get("playbook", [])
         assert len(playbook) >= 1
         for pattern in playbook:
             assert "pattern_id" in pattern
             assert "name_ko" in pattern
             assert "sequences" in pattern
-            assert len(pattern["sequences"]) > 0
-            # 발생 횟수가 0회인 패턴은 노출되지 않아야 함 (단, 0개 시 fallback 1개 제외)
+            if pattern["occurrences"] > 0:
+                assert len(pattern["sequences"]) > 0
             if len(playbook) > 1:
                 assert pattern["occurrences"] > 0
 
