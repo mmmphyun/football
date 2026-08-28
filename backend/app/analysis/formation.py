@@ -325,10 +325,14 @@ def compute_formation_summary(
             avg_x = max(3.0, min(117.0, avg_x))
             avg_y = max(4.0, min(76.0, avg_y))
 
+            disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
+
             result.append(
                 {
                     "player_id": p_id,
-                    "player_name": p_info.get("player_name"),
+                    "player_name": disp_name,
+                    "player_nickname": p_info.get("player_nickname"),
+                    "full_name": p_info.get("player_name"),
                     "jersey_number": p_info.get("jersey_number"),
                     "position": p_info.get("primary_position"),
                     "position_id": p_info.get("primary_position_id"),

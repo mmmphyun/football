@@ -6,19 +6,26 @@
 
 from typing import Any
 
-from app.analysis.common import get_match_duration_min, is_completed_pass
+from app.analysis.common import build_lineup_maps, get_match_duration_min, is_completed_pass
 from app.config import DEFENSIVE_THIRD_X, HALF_PITCH_X, TIMELINE_INTERVAL_MINUTES
 
 
 def compute_timeline_summary(
     events: list[dict[str, Any]],
     team_id: int,
+    lineups: list[dict[str, Any]] | None = None,
     interval_min: int = TIMELINE_INTERVAL_MINUTES,
 ) -> list[dict[str, Any]]:
     """팀의 15분 단위 전술 타임라인 슬라이스 목록을 산출합니다."""
     duration_min = int(get_match_duration_min(events))
     if duration_min <= 0:
         duration_min = 90
+
+    # 라인업 정보가 있으면 선수 메타데이터 맵 구성
+    players_meta: dict[int, dict[str, Any]] = {}
+    if lineups:
+        lineup_maps = build_lineup_maps(lineups)
+        players_meta = lineup_maps.get(team_id, {}).get("players", {})
 
     # 15분 단위 구간 생성
     slices: list[dict[str, Any]] = []
@@ -118,9 +125,12 @@ def compute_timeline_summary(
             if loc and len(loc) >= 2:
                 player_coords.setdefault(pid, []).append((float(loc[0]), float(loc[1])))
                 if pid not in player_info_map:
+                    p_meta = players_meta.get(pid, {})
+                    disp_name = p_meta.get("player_nickname") or p_meta.get("player_name") or pname
                     player_info_map[pid] = {
                         "player_id": pid,
-                        "player_name": pname,
+                        "player_name": disp_name,
+                        "player_nickname": p_meta.get("player_nickname"),
                         "position": pos_name,
                     }
 
@@ -133,6 +143,7 @@ def compute_timeline_summary(
                 {
                     "player_id": pid,
                     "player_name": info.get("player_name", "Unknown"),
+                    "player_nickname": info.get("player_nickname"),
                     "position": info.get("position", "Player"),
                     "x": round(avg_x, 2),
                     "y": round(avg_y, 2),
