@@ -92,7 +92,9 @@ def run_diagnosis() -> None:
     print(f"  Actor Players in 360: {t360_actor_count}")
     print(f"  Teammate Positions in 360: {t360_teammates_total}")
     print(f"  Opponent Positions in 360: {t360_opponents_total}")
-    print(f"  Average players visible per frame: {(t360_teammates_total + t360_opponents_total)/max(1, len(three_sixty)):.1f}")
+    print(
+        f"  Average players visible per frame: {(t360_teammates_total + t360_opponents_total) / max(1, len(three_sixty)):.1f}"
+    )
 
     # (B) 현재 formation.py 모듈 결과 실행
     curr_form = compute_formation_summary(events, lineups, ukr_id, three_sixty)
@@ -101,7 +103,9 @@ def run_diagnosis() -> None:
     print(f"  Reported Team Length: {curr_form['team_length']}, Width: {curr_form['team_width']}")
     print("  Subphase Shapes reported:")
     for sp_key, sp_val in curr_form["subphases"].items():
-        print(f"    [{sp_key}] formation: {sp_val['formation']}, line_height: {sp_val['line_height']}, width: {sp_val['width']}, length: {sp_val['length']}")
+        print(
+            f"    [{sp_key}] formation: {sp_val['formation']}, line_height: {sp_val['line_height']}, width: {sp_val['width']}, length: {sp_val['length']}"
+        )
 
     # 대표 선수 5명에 대해 원시 평균 좌표 vs 모듈 출력 좌표 비교
     print("\n  Sample Starters Coordinate Comparison:")
@@ -110,15 +114,20 @@ def run_diagnosis() -> None:
         p_name = ukr_starters_meta[pid]["player_name"]
         curr_p = curr_players_map.get(pid, {})
         raw_in = raw_in_poss_locs.get(pid, [])
-        raw_in_x = sum(pt[0] for pt in raw_in)/len(raw_in) if raw_in else 0
-        raw_in_y = sum(pt[1] for pt in raw_in)/len(raw_in) if raw_in else 0
+        raw_in_x = sum(pt[0] for pt in raw_in) / len(raw_in) if raw_in else 0
+        raw_in_y = sum(pt[1] for pt in raw_in) / len(raw_in) if raw_in else 0
 
-        fin_p = next((p for p in curr_form["subphases"]["final_third"]["players"] if p["player_id"] == pid), None)
+        fin_p = next(
+            (p for p in curr_form["subphases"]["final_third"]["players"] if p["player_id"] == pid),
+            None,
+        )
         fin_mod_x = fin_p["x"] if fin_p else None
 
         print(f"    Player: {p_name} (Pos: {ukr_starters_meta[pid]['primary_position']})")
         print(f"      Raw In-Possession Avg: ({raw_in_x:.1f}, {raw_in_y:.1f}) [n={len(raw_in)}]")
-        print(f"      Current Overall Output: ({curr_p.get('x')}, {curr_p.get('y')}) [Anchor: ({curr_p.get('anchor_x')}, {curr_p.get('anchor_y')})]")
+        print(
+            f"      Current Overall Output: ({curr_p.get('x')}, {curr_p.get('y')}) [Anchor: ({curr_p.get('anchor_x')}, {curr_p.get('anchor_y')})]"
+        )
         print(f"      Current Final-Third Output X: {fin_mod_x}")
 
     # -------------------------------------------------------------
@@ -131,12 +140,16 @@ def run_diagnosis() -> None:
     print("\n--- (A) Raw Pattern Detection vs (B) Current Module Output ---")
     for pat in curr_playbook:
         print(f"  Pattern: {pat['pattern_id']} ({pat['name_ko']})")
-        print(f"    Occurrences: {pat['occurrences']}, Total xG: {pat['total_xg']}, Sequences Stored: {len(pat['sequences'])}")
+        print(
+            f"    Occurrences: {pat['occurrences']}, Total xG: {pat['total_xg']}, Sequences Stored: {len(pat['sequences'])}"
+        )
         if pat["sequences"]:
             first_seq = pat["sequences"][0]
             print(f"    Sample sequence events ({len(first_seq)} steps):")
             for step in first_seq:
-                print(f"      - {step.get('type')}: ({step.get('start_x')}, {step.get('start_y')}) -> ({step.get('end_x')}, {step.get('end_y')}) by {step.get('player_name')}")
+                print(
+                    f"      - {step.get('type')}: ({step.get('start_x')}, {step.get('start_y')}) -> ({step.get('end_x')}, {step.get('end_y')}) by {step.get('player_name')}"
+                )
 
     # -------------------------------------------------------------
     # DIAGNOSIS 3: 압박 및 PPDA / 압박 트랩 (PRESSURE)
@@ -145,20 +158,50 @@ def run_diagnosis() -> None:
     print("[DIAGNOSIS 3] 압박 강도, PPDA 및 압박 트랩 핫스팟 대조 (Ukraine 기준)")
     curr_pressure = compute_pressure_summary(events, ukr_id)
 
-    ukr_pressures = [ev for ev in events if ev.get("team", {}).get("id") == ukr_id and ev.get("type", {}).get("name") == "Pressure"]
-    mkd_pressures = [ev for ev in events if ev.get("team", {}).get("id") == mkd_id and ev.get("type", {}).get("name") == "Pressure"]
+    ukr_pressures = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == ukr_id and ev.get("type", {}).get("name") == "Pressure"
+    ]
+    mkd_pressures = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == mkd_id and ev.get("type", {}).get("name") == "Pressure"
+    ]
 
-    mkd_passes_opp_third = [ev for ev in events if ev.get("team", {}).get("id") == mkd_id and ev.get("type", {}).get("name") == "Pass" and (ev.get("location") and ev.get("location")[0] < 80.0)]
-    mkd_passes_own_half = [ev for ev in events if ev.get("team", {}).get("id") == mkd_id and ev.get("type", {}).get("name") == "Pass" and (ev.get("location") and ev.get("location")[0] < 60.0)]
-    mkd_passes_def_third = [ev for ev in events if ev.get("team", {}).get("id") == mkd_id and ev.get("type", {}).get("name") == "Pass" and (ev.get("location") and ev.get("location")[0] < 40.0)]
+    mkd_passes_opp_third = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == mkd_id
+        and ev.get("type", {}).get("name") == "Pass"
+        and (ev.get("location") and ev.get("location")[0] < 80.0)
+    ]
+    mkd_passes_own_half = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == mkd_id
+        and ev.get("type", {}).get("name") == "Pass"
+        and (ev.get("location") and ev.get("location")[0] < 60.0)
+    ]
+    mkd_passes_def_third = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == mkd_id
+        and ev.get("type", {}).get("name") == "Pass"
+        and (ev.get("location") and ev.get("location")[0] < 40.0)
+    ]
 
     print(f"  Raw Pressures: Ukraine={len(ukr_pressures)}, North Macedonia={len(mkd_pressures)}")
-    print(f"  MKD Passes in x<80: {len(mkd_passes_opp_third)}, in x<60: {len(mkd_passes_own_half)}, in x<40: {len(mkd_passes_def_third)}")
+    print(
+        f"  MKD Passes in x<80: {len(mkd_passes_opp_third)}, in x<60: {len(mkd_passes_own_half)}, in x<40: {len(mkd_passes_def_third)}"
+    )
     print(f"  Current Module PPDA: {curr_pressure['ppda']}")
     print(f"  Current Module High Press Actions: {curr_pressure['high_press_defensive_actions']}")
     print(f"  Current Module Traps Found: {len(curr_pressure['pressure_traps'])}")
     for trap in curr_pressure["pressure_traps"]:
-        print(f"    Trap: {trap['zone']}, Count: {trap['count']}, Center: ({trap['x']}, {trap['y']}), Intensity: {trap['intensity']}")
+        print(
+            f"    Trap: {trap['zone']}, Count: {trap['count']}, Center: ({trap['x']}, {trap['y']}), Intensity: {trap['intensity']}"
+        )
 
     # -------------------------------------------------------------
     # DIAGNOSIS 4: 구역 점유율 (ZONES OCCUPANCY)
@@ -185,9 +228,15 @@ def run_diagnosis() -> None:
             elif ev_team == mkd_id and not is_tm:
                 opp_frame_ukr_xs.append(float(loc[0]))
 
-    print(f"  Own-event 360 Ukraine players avg X: {sum(own_frame_ukr_xs)/len(own_frame_ukr_xs):.2f} (n={len(own_frame_ukr_xs)})")
-    print(f"  Opponent-event 360 Ukraine players (without coordinate flip) avg X: {sum(opp_frame_ukr_xs)/len(opp_frame_ukr_xs):.2f} (n={len(opp_frame_ukr_xs)})")
-    print(f"  Opponent-event 360 Ukraine players (WITH coordinate flip 120-x) avg X: {sum(120.0 - x for x in opp_frame_ukr_xs)/len(opp_frame_ukr_xs):.2f}")
+    print(
+        f"  Own-event 360 Ukraine players avg X: {sum(own_frame_ukr_xs) / len(own_frame_ukr_xs):.2f} (n={len(own_frame_ukr_xs)})"
+    )
+    print(
+        f"  Opponent-event 360 Ukraine players (without coordinate flip) avg X: {sum(opp_frame_ukr_xs) / len(opp_frame_ukr_xs):.2f} (n={len(opp_frame_ukr_xs)})"
+    )
+    print(
+        f"  Opponent-event 360 Ukraine players (WITH coordinate flip 120-x) avg X: {sum(120.0 - x for x in opp_frame_ukr_xs) / len(opp_frame_ukr_xs):.2f}"
+    )
     print(f"  Current Zone Total Samples: {curr_zones['total_samples']}")
 
     print("\n" + "=" * 80)

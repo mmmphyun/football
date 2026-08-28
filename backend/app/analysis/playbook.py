@@ -99,8 +99,12 @@ def _classify_attack_sequence(
                 has_deep_linebreak = True
 
             # 1) 측면 과부하 & 컷백 판정 (음의 패스: ex <= sx + 3.0)
-            in_flank = (sy <= CUTBACK_FLANK_Y_TOP or sy >= CUTBACK_FLANK_Y_BOTTOM) and sx >= CUTBACK_FLANK_X_MIN
-            target_in_box = CUTBACK_TARGET_Y_MIN <= ey <= CUTBACK_TARGET_Y_MAX and ex >= CUTBACK_TARGET_X_MIN
+            in_flank = (
+                sy <= CUTBACK_FLANK_Y_TOP or sy >= CUTBACK_FLANK_Y_BOTTOM
+            ) and sx >= CUTBACK_FLANK_X_MIN
+            target_in_box = (
+                CUTBACK_TARGET_Y_MIN <= ey <= CUTBACK_TARGET_Y_MAX and ex >= CUTBACK_TARGET_X_MIN
+            )
             is_negative_pass = ex <= sx + 3.0
             if in_flank and target_in_box and is_negative_pass:
                 has_cutback = True

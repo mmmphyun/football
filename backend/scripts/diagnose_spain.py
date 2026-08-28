@@ -3,8 +3,8 @@
 import sys
 from collections import Counter, defaultdict
 
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
 
 from app.analysis.common import build_lineup_maps
 from app.analysis.formation import compute_formation_summary
@@ -35,7 +35,9 @@ def run_spain_diagnosis() -> None:
     crc_id = next(tid for tid, name in team_names.items() if "Costa Rica" in name)
 
     print(f"Teams: Spain ({esp_id}), Costa Rica ({crc_id})")
-    print(f"Total Events: {len(events)} (Spain: {sum(1 for ev in events if ev.get('team', {}).get('id') == esp_id)}, Costa Rica: {sum(1 for ev in events if ev.get('team', {}).get('id') == crc_id)})")
+    print(
+        f"Total Events: {len(events)} (Spain: {sum(1 for ev in events if ev.get('team', {}).get('id') == esp_id)}, Costa Rica: {sum(1 for ev in events if ev.get('team', {}).get('id') == crc_id)})"
+    )
     print("-" * 80)
 
     lineup_maps = build_lineup_maps(lineups)
@@ -97,7 +99,9 @@ def run_spain_diagnosis() -> None:
     print(f"  Reported Team Length: {curr_form['team_length']}, Width: {curr_form['team_width']}")
     print("  Subphase Shapes reported:")
     for sp_key, sp_val in curr_form["subphases"].items():
-        print(f"    [{sp_key:12s}] formation: {sp_val['formation']:6s}, line_height: {sp_val['line_height']:5.2f}, width: {sp_val['width']:5.2f}, length: {sp_val['length']:5.2f}")
+        print(
+            f"    [{sp_key:12s}] formation: {sp_val['formation']:6s}, line_height: {sp_val['line_height']:5.2f}, width: {sp_val['width']:5.2f}, length: {sp_val['length']:5.2f}"
+        )
 
     print("\n  Starters Coordinate Comparison (Raw In-Possession vs Current Output):")
     curr_players_map = {p["player_id"]: p for p in curr_form["players"]}
@@ -107,14 +111,19 @@ def run_spain_diagnosis() -> None:
         pos_name = p_info["primary_position"]
         curr_p = curr_players_map.get(pid, {})
         raw_in = raw_in_poss_locs.get(pid, [])
-        raw_in_x = sum(pt[0] for pt in raw_in)/len(raw_in) if raw_in else 0.0
-        raw_in_y = sum(pt[1] for pt in raw_in)/len(raw_in) if raw_in else 0.0
+        raw_in_x = sum(pt[0] for pt in raw_in) / len(raw_in) if raw_in else 0.0
+        raw_in_y = sum(pt[1] for pt in raw_in) / len(raw_in) if raw_in else 0.0
 
         # final_third 국면에서의 모듈 값
-        fin_p = next((p for p in curr_form["subphases"]["final_third"]["players"] if p["player_id"] == pid), None)
+        fin_p = next(
+            (p for p in curr_form["subphases"]["final_third"]["players"] if p["player_id"] == pid),
+            None,
+        )
         fin_mod_x = fin_p["x"] if fin_p else None
 
-        print(f"    {p_name:<24s} ({pos_name:<22s}) | Raw Avg: ({raw_in_x:5.1f}, {raw_in_y:5.1f}) [n={len(raw_in):3d}] | Curr Overall: ({curr_p.get('x', 0):5.1f}, {curr_p.get('y', 0):5.1f}) | Final-Third X: {fin_mod_x}")
+        print(
+            f"    {p_name:<24s} ({pos_name:<22s}) | Raw Avg: ({raw_in_x:5.1f}, {raw_in_y:5.1f}) [n={len(raw_in):3d}] | Curr Overall: ({curr_p.get('x', 0):5.1f}, {curr_p.get('y', 0):5.1f}) | Final-Third X: {fin_mod_x}"
+        )
 
     # -------------------------------------------------------------
     # DIAGNOSIS 2: 5대 시그니처 공격 플레이북 (PLAYBOOK)
@@ -126,12 +135,16 @@ def run_spain_diagnosis() -> None:
     print("\n--- Current Playbook Output ---")
     for pat in curr_playbook:
         print(f"  Pattern: {pat['pattern_id']} ({pat['name_ko']})")
-        print(f"    Occurrences: {pat['occurrences']}, Total xG: {pat['total_xg']}, Sequences Stored: {len(pat['sequences'])}")
+        print(
+            f"    Occurrences: {pat['occurrences']}, Total xG: {pat['total_xg']}, Sequences Stored: {len(pat['sequences'])}"
+        )
         if pat["sequences"]:
             first_seq = pat["sequences"][0]
             print(f"    Sample sequence ({len(first_seq)} steps):")
             for step in first_seq:
-                print(f"      - {step.get('type')}: ({step.get('start_x')}, {step.get('start_y')}) -> ({step.get('end_x')}, {step.get('end_y')}) by {step.get('player_name')}")
+                print(
+                    f"      - {step.get('type')}: ({step.get('start_x')}, {step.get('start_y')}) -> ({step.get('end_x')}, {step.get('end_y')}) by {step.get('player_name')}"
+                )
 
     # -------------------------------------------------------------
     # DIAGNOSIS 3: 압박 및 PPDA / 압박 트랩 (PRESSURE)
@@ -140,15 +153,42 @@ def run_spain_diagnosis() -> None:
     print("[DIAGNOSIS 3] 압박 강도, PPDA 및 압박 트랩 핫스팟 대조 (Spain 기준)")
     curr_pressure = compute_pressure_summary(events, esp_id)
 
-    esp_pressures = [ev for ev in events if ev.get("team", {}).get("id") == esp_id and ev.get("type", {}).get("name") == "Pressure"]
-    crc_pressures = [ev for ev in events if ev.get("team", {}).get("id") == crc_id and ev.get("type", {}).get("name") == "Pressure"]
+    esp_pressures = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == esp_id and ev.get("type", {}).get("name") == "Pressure"
+    ]
+    crc_pressures = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == crc_id and ev.get("type", {}).get("name") == "Pressure"
+    ]
 
-    crc_passes_total = [ev for ev in events if ev.get("team", {}).get("id") == crc_id and ev.get("type", {}).get("name") == "Pass"]
-    crc_passes_def_40 = [ev for ev in events if ev.get("team", {}).get("id") == crc_id and ev.get("type", {}).get("name") == "Pass" and (ev.get("location") and ev.get("location")[0] <= 48.0)]
-    esp_def_actions_att_60 = [ev for ev in events if ev.get("team", {}).get("id") == esp_id and ev.get("type", {}).get("name") in {"Pressure", "Tackle", "Interception", "Foul Committed"} and (ev.get("location") and ev.get("location")[0] >= 48.0)]
+    crc_passes_total = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == crc_id and ev.get("type", {}).get("name") == "Pass"
+    ]
+    crc_passes_def_40 = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == crc_id
+        and ev.get("type", {}).get("name") == "Pass"
+        and (ev.get("location") and ev.get("location")[0] <= 48.0)
+    ]
+    esp_def_actions_att_60 = [
+        ev
+        for ev in events
+        if ev.get("team", {}).get("id") == esp_id
+        and ev.get("type", {}).get("name")
+        in {"Pressure", "Tackle", "Interception", "Foul Committed"}
+        and (ev.get("location") and ev.get("location")[0] >= 48.0)
+    ]
 
     print(f"  Raw Pressures: Spain={len(esp_pressures)}, Costa Rica={len(crc_pressures)}")
-    print(f"  CRC Total Passes: {len(crc_passes_total)}, CRC Passes in def 40% (x<=48): {len(crc_passes_def_40)}")
+    print(
+        f"  CRC Total Passes: {len(crc_passes_total)}, CRC Passes in def 40% (x<=48): {len(crc_passes_def_40)}"
+    )
     print(f"  Spain High Def Actions (x>=48): {len(esp_def_actions_att_60)}")
     std_ppda = round(len(crc_passes_def_40) / max(1, len(esp_def_actions_att_60)), 2)
     print(f"  Standard StatsBomb PPDA: {std_ppda}")
@@ -156,7 +196,9 @@ def run_spain_diagnosis() -> None:
     print(f"  Current Module High Press Actions: {curr_pressure['high_press_defensive_actions']}")
     print(f"  Current Module Traps Found: {len(curr_pressure['pressure_traps'])}")
     for trap in curr_pressure["pressure_traps"]:
-        print(f"    Trap: {trap['zone']}, Count: {trap['count']}, Center: ({trap['x']}, {trap['y']}), Intensity: {trap['intensity']}")
+        print(
+            f"    Trap: {trap['zone']}, Count: {trap['count']}, Center: ({trap['x']}, {trap['y']}), Intensity: {trap['intensity']}"
+        )
 
     # -------------------------------------------------------------
     # DIAGNOSIS 4: 구역 점유율 (ZONES OCCUPANCY)
