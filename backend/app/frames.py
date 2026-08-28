@@ -571,7 +571,8 @@ def build_highlight_frames(
     # 2. 10Hz 연속 보간 및 완성형 프레임 시퀀스 생성
     start_t = keyframes[0]["timestamp_sec"]
     last_k = keyframes[-1]
-    shot_duration = float(last_k.get("shot_info", {}).get("duration", 0.5))
+    last_shot_info = last_k.get("shot_info") or {}
+    shot_duration = float(last_shot_info.get("duration") or 0.5)
     end_t = last_k["timestamp_sec"] + (shot_duration if last_k["event_type"] == "Shot" else 0.5)
 
     dt_step = 1.0 / fps
@@ -592,11 +593,12 @@ def build_highlight_frames(
         is_shot_phase = cur_t >= keyframes[-1]["timestamp_sec"] and keyframes[-1]["event_type"] == "Shot"
 
         # A. 공 위치 보간
-        if is_shot_phase and keyframes[-1].get("shot_info", {}).get("end_location"):
+        shot_obj = keyframes[-1].get("shot_info") or {}
+        if is_shot_phase and shot_obj.get("end_location"):
             shot_t_offset = min(cur_t - keyframes[-1]["timestamp_sec"], shot_duration)
             alpha_shot = shot_t_offset / shot_duration if shot_duration > 0 else 1.0
             p_start = keyframes[-1]["ball_loc"]
-            p_end = keyframes[-1]["shot_info"]["end_location"][:2]
+            p_end = shot_obj["end_location"][:2]
             ball_pos = [
                 _clamp(p_start[0] + alpha_shot * (p_end[0] - p_start[0]), 0.0, 120.0),
                 _clamp(p_start[1] + alpha_shot * (p_end[1] - p_start[1]), 0.0, 80.0),
@@ -606,9 +608,10 @@ def build_highlight_frames(
             seg_dt = max(k_next["timestamp_sec"] - k_prev["timestamp_sec"], 0.0001)
             alpha = min(max((cur_t - k_prev["timestamp_sec"]) / seg_dt, 0.0), 1.0)
 
-            if k_prev["event_type"] == "Pass" and k_prev.get("pass_info", {}).get("end_location"):
+            prev_pass = k_prev.get("pass_info") or {}
+            if k_prev["event_type"] == "Pass" and prev_pass.get("end_location"):
                 p_start = k_prev["ball_loc"]
-                p_end = k_prev["pass_info"]["end_location"]
+                p_end = prev_pass["end_location"]
                 ball_pos = [
                     _clamp(p_start[0] + alpha * (p_end[0] - p_start[0]), 0.0, 120.0),
                     _clamp(p_start[1] + alpha * (p_end[1] - p_start[1]), 0.0, 80.0),
@@ -706,11 +709,12 @@ def build_highlight_frames(
                 )
 
         # 리시버 앵커링: 패스 구간 동안 리시버가 공을 받으러 달려오는 궤적 보장
+        prev_pass_obj = k_prev.get("pass_info") or {}
         if k_prev["event_type"] == "Pass" and k_next["event_type"] == "Ball Receipt*":
             recip_id = k_next.get("player_id")
             recip_name = k_next.get("player_name")
-            if recip_id and not any(p.get("player_id") == recip_id for p in frame_interp_players):
-                end_l = k_prev["pass_info"]["end_location"]
+            if recip_id and prev_pass_obj.get("end_location") and not any(p.get("player_id") == recip_id for p in frame_interp_players):
+                end_l = prev_pass_obj["end_location"]
                 start_apx = [max(end_l[0] - 10.0, 0.0), end_l[1]]
                 run_x = start_apx[0] + alpha * (end_l[0] - start_apx[0])
                 run_y = start_apx[1] + alpha * (end_l[1] - start_apx[1])
