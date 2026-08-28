@@ -1445,70 +1445,85 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </g>
         )}
 
-        {/* 11. 마우스 호버 툴팁 (선수 전술 역할 및 상세 정보 카드) */}
+        {/* 11. 마우스 호버 툴팁 (선수 전술 역할 및 상세 정보 카드 - 확장 뷰) */}
         {hoveredPlayer && (
           <g
             transform={`translate(${Math.min(
-              SVG_WIDTH - 150,
-              Math.max(150, hoveredPlayer.svgX)
-            )}, ${Math.max(75, hoveredPlayer.svgY - 60)})`}
+              SVG_WIDTH - 185,
+              Math.max(185, hoveredPlayer.svgX)
+            )}, ${Math.max(80, hoveredPlayer.svgY - 80)})`}
             className="pointer-events-none"
           >
+            {/* 카드 배경 */}
             <rect
-              x="-135"
-              y="-48"
-              width="270"
-              height="88"
-              rx="8"
-              fill="rgba(15, 23, 42, 0.96)"
+              x="-170"
+              y="-70"
+              width="340"
+              height="138"
+              rx="12"
+              fill="rgba(11, 18, 33, 0.98)"
               stroke="#38bdf8"
-              strokeWidth="1.8"
+              strokeWidth="2.2"
               className="drop-shadow-2xl"
             />
-            {/* 상단: 등번호 + 이름 + 선발 포지션 */}
-            <text x="-122" y="-27" fill="#38bdf8" fontSize="13" fontWeight="900">
+            {/* 1열: 등번호 + 선수명 + 선발 등록 포지션 */}
+            <text x="-152" y="-44" fill="#38bdf8" fontSize="16" fontWeight="900" fontFamily="monospace">
               #{hoveredPlayer.jersey_number ?? "-"}
             </text>
-            <text x="-95" y="-27" fill="#ffffff" fontSize="13" fontWeight="bold">
+            <text x="-118" y="-44" fill="#ffffff" fontSize="15" fontWeight="bold">
               {hoveredPlayer.player_name}
             </text>
-            <text x="122" y="-27" fill="#94a3b8" fontSize="11" textAnchor="end">
+            <text x="152" y="-44" fill="#94a3b8" fontSize="12" fontWeight="medium" textAnchor="end">
               {hoveredPlayer.position ?? "선수"}
             </text>
 
             <line
-              x1="-125"
-              y1="-18"
-              x2="125"
-              y2="-18"
+              x1="-155"
+              y1="-32"
+              x2="155"
+              y2="-32"
               stroke="rgba(51, 65, 85, 0.9)"
-              strokeWidth="1"
+              strokeWidth="1.2"
             />
 
-            {/* 중단: 실측 전술 역할 뱃지 */}
+            {/* 2열: 실측 전술 역할 뱃지 */}
             <rect
-              x="-122"
-              y="-12"
-              width="244"
-              height="20"
-              rx="4"
-              fill="rgba(14, 165, 233, 0.22)"
-              stroke="rgba(56, 189, 248, 0.4)"
-              strokeWidth="0.8"
+              x="-155"
+              y="-24"
+              width="310"
+              height="26"
+              rx="6"
+              fill="rgba(14, 165, 233, 0.25)"
+              stroke="rgba(56, 189, 248, 0.6)"
+              strokeWidth="1.2"
             />
-            <text x="-114" y="2" fill="#38bdf8" fontSize="11" fontWeight="bold">
-              {hoveredPlayer.tactical_role_ko ?? hoveredPlayer.tactical_role ?? "전술 역할"}
+            <text x="-145" y="-7" fill="#38bdf8" fontSize="13" fontWeight="bold">
+              {hoveredPlayer.tactical_role_ko ?? hoveredPlayer.tactical_role ?? "전술 역할 분석 중"}
             </text>
+            {hoveredPlayer.tactical_role && (
+              <text x="145" y="-7" fill="#7dd3fc" fontSize="11" textAnchor="end" opacity="0.9">
+                {hoveredPlayer.tactical_role}
+              </text>
+            )}
 
-            {/* 하단: 실측 좌표 및 상세 지표 */}
-            <text x="-122" y="26" fill="#cbd5e1" fontSize="10.5">
+            {/* 3열: 전술적 행동 및 역할 설명 */}
+            {hoveredPlayer.tactical_role_desc && (
+              <text x="-152" y="20" fill="#cbd5e1" fontSize="11.5">
+                {hoveredPlayer.tactical_role_desc.length > 34
+                  ? `${hoveredPlayer.tactical_role_desc.slice(0, 34)}...`
+                  : hoveredPlayer.tactical_role_desc}
+              </text>
+            )}
+
+            {/* 4열: 실측 피치 좌표 및 활동량/패스 지표 */}
+            <text x="-152" y="48" fill="#94a3b8" fontSize="12" fontFamily="monospace">
               실측: ({hoveredPlayer.x}m, {hoveredPlayer.y}m)
             </text>
-            <text x="122" y="26" fill="#e2e8f0" fontSize="10.5" fontWeight="bold" textAnchor="end">
+            <text x="152" y="48" fill="#34d399" fontSize="12" fontWeight="bold" textAnchor="end">
               {hoveredPlayer.event_count !== undefined
-                ? `이벤트 ${hoveredPlayer.event_count}회`
+                ? `경기 참여 ${hoveredPlayer.event_count}회`
                 : hoveredPlayer.pass_count !== undefined
-                ? `패스 성공 ${hoveredPlayer.pass_count}회 (${((hoveredPlayer.pass_accuracy ?? 1) * 100).toFixed(0)}%)`
+                ? `패스 ${hoveredPlayer.pass_count}회 (${((hoveredPlayer.pass_accuracy ?? 1) * 100).toFixed(0)}%)`
                 : ""}
             </text>
           </g>

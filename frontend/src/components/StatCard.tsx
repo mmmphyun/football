@@ -5,7 +5,7 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   badge?: string;
-  badgeColor?: "emerald" | "blue" | "amber" | "indigo" | "rose";
+  badgeColor?: "emerald" | "blue" | "amber" | "indigo" | "rose" | "sky" | "orange";
   trend?: string;
 }
 
@@ -22,6 +22,8 @@ export const StatCard: React.FC<StatCardProps> = ({
     amber: "bg-amber-500/10 text-amber-400 border-amber-500/30",
     indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
     rose: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+    sky: "bg-sky-500/10 text-sky-400 border-sky-500/30",
+    orange: "bg-orange-500/10 text-orange-400 border-orange-500/30",
   };
 
   return (
