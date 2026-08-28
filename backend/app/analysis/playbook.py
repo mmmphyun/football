@@ -152,13 +152,8 @@ def _classify_attack_sequence(
             "최후방 빌드업 라인에서 상대 미드필드 블록을 한 번에 관통하여 2선으로 연결하는 다이렉트 롱패스",
         )
 
-    # 기본 측면 전개 컷백 패턴으로 폴백
-    return (
-        "side_overload_cutback",
-        "Side Overload & Cutback",
-        "측면 과부하 및 컷백 전개",
-        "측면 터치라인 공간을 활용한 윙 플레이 및 박스 침투 패턴",
-    )
+    # 5대 시그니처 패턴 조건을 만족하지 않는 일반 볼 소유/단순 빌드업 시퀀스는 제외
+    return None
 
 
 def compute_playbook_summary(

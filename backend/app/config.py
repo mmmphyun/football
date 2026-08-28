@@ -11,7 +11,7 @@ PITCH_WIDTH: float = 80.0
 DEFENSIVE_THIRD_X: float = 40.0
 HALF_PITCH_X: float = 60.0  # 빌드업(x < 60.0)과 공격(x >= 60.0) 국면 분할 기준선
 MIDDLE_THIRD_X: float = 80.0
-ATTACKING_THIRD_X: float = 120.0
+ATTACKING_THIRD_X: float = 80.0  # 공격 3분의 1 진영(파이널 서드) 진입 기준선 (x >= 80.0)
 
 # UEFA 6대 서브 국면 X축 경계값 (단위: 미터)
 # 1. 볼 소유 국면 (In-Possession)
