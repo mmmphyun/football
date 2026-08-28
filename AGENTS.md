@@ -10,22 +10,23 @@
 ---
 
 ## 2. GitHub 이슈 기반 브랜치 & PR 워크플로우
-모든 작업은 반드시 다음 단계를 거쳐 진행합니다.
+모든 작업은 작업 성격에 따라 다음 워크플로우를 준수하여 진행합니다.
 
-1. **이슈 우선 생성**:
+1. **이슈 생성**:
    - 개발/수정 작업 시작 전 반드시 GitHub CLI로 이슈를 먼저 생성합니다.
-   - 예시: `gh issue create --title "[Phase 1] 기반 레이어 구축" --label "phase:1-base,type:feat" --body "..."`
+   - 예시: `gh issue create --title "[Feature] 360 하이라이트 플레이어 구현" --label "enhancement" --body "..."`
 2. **이슈 연동 브랜치 분기**:
    - 이슈 번호를 포함한 브랜치를 생성하여 작업합니다.
    - 형식: `feat/#<이슈번호>-<기능명>` 또는 `fix/#<이슈번호>-<버그명>`
    - 예시: `git checkout -b feat/#1-base-layer`
-3. **단위 작업 커밋**:
-   - 기능 단위로 쪼개어 최소 작업 단위(Atomic Commit)로 커밋합니다.
+3. **작업 및 커밋 주기**:
+   - **기능 개발 / 일반 수정**: 하나의 논리적 이슈에 대해 브랜치를 하나 파고, 내부에 여러 개의 원자적 커밋(백엔드 $\to$ 프론트엔드 $\to$ 테스트 $\to$ 스타일 등)을 누적한 뒤 최종 1개의 PR로 머지합니다.
+   - **긴급 핫픽스 / 독립 버그**: 수정 즉시 단일 커밋 PR로 신속히 머지합니다.
 4. **Pull Request 생성 및 이슈 연동**:
    - 작업 완료 후 `gh pr create`로 PR을 생성합니다.
    - PR 본문에 반드시 `Closes #<이슈번호>`를 명시하여 머지 시 이슈가 자동 클로즈되도록 합니다.
 5. **CI 통과 확인 및 머지**:
-   - GitHub Actions CI (Ruff + Pytest) 통과를 확인한 후 `main` 브랜치에 머지합니다.
+   - GitHub Actions CI (Backend Lint/Format/Test + Frontend Build/Test)가 100% 정상 통과(Green)한 것을 확인한 후 `main` 브랜치에 머지합니다.
 
 ---
 
