@@ -6,8 +6,6 @@ from app.analysis.common import event_time
 from app.config import (
     MAX_POSSESSION_WINDOW_SEC,
     MIN_HIGHLIGHT_XG,
-    POST_WINDOW_SEC,
-    PRE_WINDOW_SEC,
 )
 
 
@@ -65,38 +63,32 @@ def extract_highlights(
         target_period = ev.get("period", 1)
         target_possession = ev.get("possession")
 
-        # 동일 포제션 체인의 시작 시점 탐색 (동일 period 내)
-        poss_start_time = t_target
+        # 동일 포제션 체인의 시작 인덱스 및 시작 시점 탐색 (동일 period 내)
+        poss_start_idx = idx
         if target_possession is not None:
             for p_idx in range(idx, -1, -1):
                 p_ev = events[p_idx]
                 if p_ev.get("period") != target_period:
                     break
                 if p_ev.get("possession") == target_possession:
-                    poss_start_time = event_times[p_idx]
+                    poss_start_idx = p_idx
                 else:
                     break
 
-        # 윈도우 시작 시각: 포제션 시작점과 기본 프리 윈도우 중 이전 시점으로 확장하되 최대 제한 적용
+        poss_start_time = event_times[poss_start_idx]
+
+        # 윈도우 시작 시각: 득점 팀의 순수 포제션 시작점 기준으로 설정 (최대 45초 상한)
         min_allowed_start = max(0.0, t_target - MAX_POSSESSION_WINDOW_SEC)
-        candidate_start = min(poss_start_time, t_target - PRE_WINDOW_SEC)
-        window_start_sec = max(min_allowed_start, candidate_start)
-        window_end_sec = t_target + POST_WINDOW_SEC
+        window_start_sec = max(min_allowed_start, poss_start_time)
 
-        # 윈도우 범위에 포함되는 이벤트 인덱스 탐색 (동일 period 우선)
-        start_idx = idx
-        for i in range(idx, -1, -1):
-            if events[i].get("period") == target_period and event_times[i] >= window_start_sec:
-                start_idx = i
-            elif events[i].get("period") != target_period or event_times[i] < window_start_sec:
-                break
+        # 시작 이벤트 인덱스: 포제션 시작 인덱스 반영
+        start_idx = poss_start_idx
+        while start_idx < idx and event_times[start_idx] < window_start_sec:
+            start_idx += 1
 
+        # 종료 이벤트 인덱스: 슛/골 이벤트(idx) 시점에서 깔끔하게 종료 (반대 진영 골키퍼 노이즈 이벤트 제외)
         end_idx = idx
-        for i in range(idx, len(events)):
-            if events[i].get("period") == target_period and event_times[i] <= window_end_sec:
-                end_idx = i
-            elif events[i].get("period") != target_period or event_times[i] > window_end_sec:
-                break
+        window_end_sec = t_target + float((ev.get("shot") or {}).get("duration") or 0.5)
 
         highlights.append(
             {

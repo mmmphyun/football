@@ -1343,8 +1343,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             velY = sy + vy * 12;
           }
 
+          const playerOpacity = p.opacity ?? (isInferred ? 0.45 : 1.0);
+          const pName = p.name || p.player_name || "";
+
           return (
-            <g key={`player-token-${p.player_id ?? idx}`}>
+            <g key={`player-token-${p.player_id ?? p.uid ?? idx}`} opacity={playerOpacity}>
               {/* +2초 예측 고스트 토큰 및 점선 연결 */}
               {hasPred && (
                 <g opacity="0.6">
@@ -1394,7 +1397,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 <circle
                   cx={sx}
                   cy={sy}
-                  r="19"
+                  r="18"
                   fill="none"
                   stroke="#facc15"
                   strokeWidth="3"
@@ -1409,7 +1412,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 stroke={isInferred ? "#94a3b8" : "#ffffff"}
                 strokeWidth={isInferred ? 1.5 : 2}
                 strokeDasharray={isInferred ? "3 2" : undefined}
-                opacity={isInferred ? 0.45 : 1.0}
               />
               <text
                 x={sx}
@@ -1418,10 +1420,22 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 fontSize="10"
                 fontWeight="bold"
                 textAnchor="middle"
-                opacity={isInferred ? 0.7 : 1.0}
               >
                 {p.is_keeper ? "GK" : p.player_id ? String(p.player_id).slice(-2) : ""}
               </text>
+              {pName && (
+                <text
+                  x={sx}
+                  y={sy + 22}
+                  fill="#ffffff"
+                  fontSize="10"
+                  fontWeight="600"
+                  textAnchor="middle"
+                  className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                >
+                  {pName}
+                </text>
+              )}
             </g>
           );
         })}

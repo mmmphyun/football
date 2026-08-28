@@ -63,6 +63,33 @@ class TestHighlightExtraction:
 class TestFrameBuilder:
     """360 프레임 시퀀스 빌더 테스트."""
 
+    def test_format_display_name(self) -> None:
+        """복합 성명 및 닉네임 포맷팅 검증."""
+        from app.frames import format_display_name
+
+        # 1. 닉네임 우선
+        assert format_display_name("Ángel Fabián Di María Hernández", nickname="Ángel Di María") == "Ángel Di María"
+
+        # 2. 전치사 결합 복합 성 (Di María)
+        assert format_display_name("Ángel Fabián Di María Hernández") == "Ángel Di María Hernández"
+
+        # 3. 2단어 이름
+        assert format_display_name("Alexis Mac Allister") == "Alexis Mac Allister"
+        assert format_display_name("Lionel Messi") == "Lionel Messi"
+
+    def test_ball_centric_shift(self) -> None:
+        """볼 위치에 따른 동적 포메이션 시프트 검증."""
+        from app.frames import _compute_ball_centric_shift
+
+        base_cb = (25.0, 40.0)  # 센터백 앵커
+        # 공이 상대 박스(110m)에 있을 때 센터백 라인도 전진
+        shifted_att = _compute_ball_centric_shift(base_cb, ball_loc=(110.0, 40.0), is_teammate=True, pos_id=4)
+        assert shifted_att[0] > base_cb[0]  # 전진
+
+        # 공이 우리 박스(10m)에 있을 때 센터백 라인 후퇴
+        shifted_def = _compute_ball_centric_shift(base_cb, ball_loc=(10.0, 40.0), is_teammate=True, pos_id=4)
+        assert shifted_def[0] < base_cb[0]  # 후퇴
+
     def test_build_highlight_frames(
         self,
         sample_events: list[dict[str, Any]],
@@ -96,9 +123,17 @@ class TestFrameBuilder:
         assert "passing_lanes" in first_frame
         assert isinstance(first_frame["passing_lanes"], list)
 
-        # 선수 정보 내부 외삽(pred_x, pred_y) 검증
+        # 선수 정보 내부 외삽(pred_x, pred_y) 및 22명 정원 검증
+        teammates = [p for p in first_frame["players"] if p.get("is_teammate")]
+        opponents = [p for p in first_frame["players"] if not p.get("is_teammate")]
+        assert len(teammates) <= 11
+        assert len(opponents) <= 11
+
         for p in first_frame["players"]:
             assert "location" in p
             assert "pred_location" in p
             assert "is_actor" in p
             assert "is_keeper" in p
+            assert 0.0 <= p["location"][0] <= 120.0
+            assert 0.0 <= p["location"][1] <= 80.0
+

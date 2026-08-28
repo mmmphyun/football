@@ -330,6 +330,8 @@ export interface PassingLane {
 export interface FramePlayer {
   player_id?: number;
   player_name?: string;
+  name?: string;
+  uid?: number;
   team_id?: number;
   is_teammate: boolean;
   is_actor: boolean;
@@ -345,6 +347,7 @@ export interface FramePlayer {
   pred_x?: number;
   pred_y?: number;
   is_inferred?: boolean;
+  opacity?: number;
 }
 
 export interface Frame {
