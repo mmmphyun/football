@@ -174,8 +174,13 @@ def compute_timeline_summary(
         else:
             # players_meta에서 선발 골키퍼 탐색
             for p_id, p_info in players_meta.items():
-                if p_info.get("primary_position_id") == 1 or p_info.get("primary_position") == "Goalkeeper":
-                    disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Goalkeeper")
+                if (
+                    p_info.get("primary_position_id") == 1
+                    or p_info.get("primary_position") == "Goalkeeper"
+                ):
+                    disp_name = p_info.get("player_nickname") or p_info.get(
+                        "player_name", "Goalkeeper"
+                    )
                     selected_gk = {
                         "player_id": p_id,
                         "player_name": disp_name,
