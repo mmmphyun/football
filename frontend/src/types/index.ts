@@ -32,6 +32,9 @@ export interface FormationPlayer {
   position_id?: number;
   position?: string;
   position_name?: string;
+  tactical_role?: string;
+  tactical_role_ko?: string;
+  tactical_role_desc?: string;
   is_starter?: boolean;
   x: number;
   y: number;

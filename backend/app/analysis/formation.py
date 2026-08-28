@@ -214,43 +214,68 @@ def determine_tactical_role(
 
 
 def _infer_shape_string(players_list: list[dict[str, Any]]) -> str:
-    """실측 X좌표 클러스터링을 바탕으로 팀의 3~4선 포메이션 대형(예: 4-3-3, 3-2-4-1, 4-4-2 등)을 추론합니다."""
+    """실측 X좌표의 최적 3~4선 1차원 군집화(Line Clustering)를 통해 국면별 실제 전술 대형을 도출합니다."""
     field_players = [p for p in players_list if p.get("position_id") != 1 and p.get("is_starter")]
     if len(field_players) < 8:
         field_players = [p for p in players_list if p.get("position_id") != 1][:10]
 
-    if not field_players:
+    if len(field_players) != 10:
         return "4-3-3"
 
     sorted_p = sorted(field_players, key=lambda p: p["x"])
+    xs = [p["x"] for p in sorted_p]
 
-    # 선수 간 X좌표 갭 기반 적응형 라인 분할 (8.0m 이상 차이나면 새 라인으로 분리)
-    lines: list[list[dict[str, Any]]] = []
-    current_line = [sorted_p[0]]
+    best_shape = "4-3-3"
+    min_variance = float("inf")
 
-    for p in sorted_p[1:]:
-        if p["x"] - current_line[-1]["x"] > 8.5:
-            lines.append(current_line)
-            current_line = [p]
-        else:
-            current_line.append(p)
-    lines.append(current_line)
+    # 1. 4선 분할 탐색 (예: 3-2-4-1, 4-2-3-1, 2-3-4-1, 3-3-3-1 등 현대 축구 빌드업/전개 대형)
+    for c1 in range(2, 6):  # 1선: 수비 라인 (2~5명)
+        for c2 in range(1, 4):  # 2선: 수비형/후방 미드필더 (1~3명)
+            for c3 in range(1, 5):  # 3선: 2선 공격/윙어 (1~4명)
+                c4 = 10 - (c1 + c2 + c3)  # 4선: 최전방 스트라이커 (1~3명)
+                if 1 <= c4 <= 3:
+                    g1 = xs[:c1]
+                    g2 = xs[c1 : c1 + c2]
+                    g3 = xs[c1 + c2 : c1 + c2 + c3]
+                    g4 = xs[c1 + c2 + c3 :]
 
-    line_counts = [len(line) for line in lines]
+                    gap1 = min(g2) - max(g1)
+                    gap2 = min(g3) - max(g2)
+                    gap3 = min(g4) - max(g3)
 
-    # 3선 ~ 5선 구조가 10명과 일치하면 해당 포메이션 반환
-    if sum(line_counts) == len(field_players) and len(line_counts) in (3, 4, 5):
-        return "-".join(str(c) for c in line_counts)
+                    if gap1 >= 3.0 and gap2 >= 3.0 and gap3 >= 3.0:
+                        var1 = sum((x - sum(g1) / len(g1)) ** 2 for x in g1)
+                        var2 = sum((x - sum(g2) / len(g2)) ** 2 for x in g2)
+                        var3 = sum((x - sum(g3) / len(g3)) ** 2 for x in g3)
+                        var4 = sum((x - sum(g4) / len(g4)) ** 2 for x in g4)
+                        total_var = var1 + var2 + var3 + var4
+                        if total_var < min_variance:
+                            min_variance = total_var
+                            best_shape = f"{c1}-{c2}-{c3}-{c4}"
 
-    # 2선이나 6선 이상으로 과분할/과소분할된 경우 3선(DF/MF/FW) 포지션 ID 기준으로 클러스터링
-    df_count = sum(1 for p in field_players if p.get("position_id") in DEFENDER_POSITION_IDS)
-    mf_count = sum(1 for p in field_players if p.get("position_id") in MIDFIELDER_POSITION_IDS)
-    fw_count = sum(1 for p in field_players if p.get("position_id") in FORWARD_POSITION_IDS)
+    # 2. 4선 분할에서 갭을 못 찾은 경우 3선 분할 탐색 (예: 4-3-3, 4-4-2, 3-5-2, 5-3-2 등)
+    if min_variance == float("inf"):
+        for c1 in range(2, 6):
+            for c2 in range(2, 6):
+                c3 = 10 - (c1 + c2)
+                if 1 <= c3 <= 4:
+                    g1 = xs[:c1]
+                    g2 = xs[c1 : c1 + c2]
+                    g3 = xs[c1 + c2 :]
 
-    if df_count > 0 and (df_count + mf_count + fw_count == len(field_players)):
-        return f"{df_count}-{mf_count}-{fw_count}"
+                    gap1 = min(g2) - max(g1)
+                    gap2 = min(g3) - max(g2)
 
-    return "4-3-3"
+                    if gap1 >= 2.5 and gap2 >= 2.5:
+                        var1 = sum((x - sum(g1) / len(g1)) ** 2 for x in g1)
+                        var2 = sum((x - sum(g2) / len(g2)) ** 2 for x in g2)
+                        var3 = sum((x - sum(g3) / len(g3)) ** 2 for x in g3)
+                        total_var = var1 + var2 + var3
+                        if total_var < min_variance:
+                            min_variance = total_var
+                            best_shape = f"{c1}-{c2}-{c3}"
+
+    return best_shape
 
 
 def compute_formation_summary(
