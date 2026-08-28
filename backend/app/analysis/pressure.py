@@ -1,6 +1,7 @@
 """압박 및 PPDA (Passes Allowed Per Defensive Action) 분석 모듈.
 
-분당 압박 횟수, 상대 진영(x >= 40) PPDA 지표 및 3분할 진영별 수비 액션 분포를 산출합니다.
+StatsBomb 표준 PPDA 공식(상대팀 자진영 40% 이하 패스 수 / 수비팀 상대 진영 60% 이상 수비 액션 수) 및
+실측 다인 압박 트랩 핫스팟 클러스터링을 산출합니다.
 """
 
 from typing import Any
@@ -13,31 +14,24 @@ from app.config import (
     PRESSURE_TRAP_TIME_WINDOW_SEC,
 )
 
-# PPDA 계산에 포함되는 수비 액션 이벤트 타입
-DEFENSIVE_ACTION_TYPES = {
+# PPDA 계산에 포함되는 StatsBomb 표준 전방 수비 액션
+PPDA_DEFENSIVE_ACTIONS = {
     "Pressure",
     "Tackle",
     "Interception",
-    "Block",
     "Foul Committed",
-    "Clearance",
+    "Block",
 }
 
-TURNOVER_EVENTS = {
-    "Ball Recovery",
-    "Interception",
-    "Tackle",
-    "Dispossessed",
-    "Miscontrol",
-    "Error",
-}
+# StatsBomb 표준 PPDA 피치 분할 기준선 (40% vs 60%, 120m * 0.4 = 48.0m)
+PPDA_PITCH_THRESHOLD_X: float = 48.0
 
 
 def _classify_trap_zone(x: float, y: float) -> str:
     """압박 좌표 기반 트랩 구역 이름을 판별합니다."""
-    if y <= 22.0:
+    if y <= 20.0:
         return "Left Touchline Trap"
-    elif y >= 58.0:
+    elif y >= 60.0:
         return "Right Touchline Trap"
     elif x >= 80.0:
         return "High Final-Third Press Trap"
@@ -50,7 +44,7 @@ def compute_pressure_summary(
     events: list[dict[str, Any]],
     team_id: int,
 ) -> dict[str, Any]:
-    """팀의 압박 강도, 분당 압박 횟수, 상대 진영 PPDA, 압박 트랩 핫스팟 및 구역별 수비 지표를 산출합니다."""
+    """팀의 압박 강도, 분당 압박 횟수, 표준 PPDA 및 실측 압박 트랩 핫스팟을 산출합니다."""
     duration_min = get_match_duration_min(events)
     opponent_id = get_opponent_team_id(team_id, events)
 
@@ -60,7 +54,7 @@ def compute_pressure_summary(
     attacking_third_pressures = 0
 
     total_defensive_actions = 0
-    high_press_defensive_actions = 0  # x >= 40 (미들 서드 + 어태킹 서드)에서의 수비 액션
+    high_press_defensive_actions = 0  # x >= 48.0 (상대 진영 60%)에서의 수비 액션
     pressure_events: list[dict[str, Any]] = []
 
     for ev in events:
@@ -82,24 +76,25 @@ def compute_pressure_summary(
             else:
                 attacking_third_pressures += 1
 
-        if type_name in DEFENSIVE_ACTION_TYPES:
+        if type_name in PPDA_DEFENSIVE_ACTIONS:
             total_defensive_actions += 1
-            is_high_press = x >= DEFENSIVE_THIRD_X
+            is_high_press = x >= PPDA_PITCH_THRESHOLD_X
             if is_high_press:
                 high_press_defensive_actions += 1
 
-            pressure_events.append(
-                {
-                    "x": round(x, 1),
-                    "y": round(y, 1),
-                    "type": type_name,
-                    "is_high_press": is_high_press,
-                    "minute": ev.get("minute", 0),
-                    "second": ev.get("second", 0),
-                }
-            )
+            if type_name == "Pressure":
+                pressure_events.append(
+                    {
+                        "x": round(x, 1),
+                        "y": round(y, 1),
+                        "type": type_name,
+                        "is_high_press": is_high_press,
+                        "minute": ev.get("minute", 0),
+                        "second": ev.get("second", 0),
+                    }
+                )
 
-    # 상대팀의 빌드업 진영(상대팀 기준 x < 80)에서의 패스 시도 횟수
+    # 상대팀의 자진영 40% (상대팀 기준 x <= 48.0)에서의 패스 시도 횟수
     opponent_passes_in_buildup = 0
     if opponent_id is not None:
         for ev in events:
@@ -109,10 +104,10 @@ def compute_pressure_summary(
                 continue
 
             loc = ev.get("location")
-            if loc and len(loc) >= 1 and float(loc[0]) < MIDDLE_THIRD_X:
+            if loc and len(loc) >= 1 and float(loc[0]) <= PPDA_PITCH_THRESHOLD_X:
                 opponent_passes_in_buildup += 1
 
-    # PPDA = 상대팀 패스 수 / 우리팀 전방 수비 액션 수
+    # StatsBomb 표준 PPDA = 상대팀 수비 진영 40% 패스 수 / 우리팀 전방 수비 액션 수
     if high_press_defensive_actions > 0:
         ppda = round(opponent_passes_in_buildup / high_press_defensive_actions, 2)
     else:
@@ -120,7 +115,7 @@ def compute_pressure_summary(
 
     pressures_per_min = round(total_pressures / duration_min, 2) if duration_min > 0 else 0.0
 
-    # 압박 트랩 핫스팟 탐지 (3초 이내 2인 이상 압박 + 턴오버 유발 구역)
+    # 압박 트랩 핫스팟 탐지 (3초 이내 2인 이상 압박 + 턴오버 유발 실측 구역)
     trap_clusters: dict[str, dict[str, Any]] = {}
     n_events = len(events)
 
@@ -151,13 +146,13 @@ def compute_pressure_summary(
             t2_team = ev2.get("team", {}).get("id")
             t2_type = ev2.get("type", {}).get("name", "")
 
-            if t2_team == team_id and t2_type in DEFENSIVE_ACTION_TYPES:
+            if t2_team == team_id and t2_type in PPDA_DEFENSIVE_ACTIONS:
                 p2 = ev2.get("player", {}).get("id")
                 if p2:
                     pressuring_players.add(p2)
 
-            # 상대팀의 실책 또는 우리팀의 탈취 확인
-            if (t2_team != team_id and t2_type in {"Dispossessed", "Miscontrol", "Pass"}) or (
+            # 상대팀의 실책(Dispossessed/Miscontrol/Pass 미스) 또는 우리팀의 탈취(Recovery/Interception/Tackle)
+            if (t2_team != team_id and t2_type in {"Dispossessed", "Miscontrol"}) or (
                 t2_team == team_id and t2_type in {"Ball Recovery", "Interception", "Tackle"}
             ):
                 turnover_forced = True
@@ -190,13 +185,6 @@ def compute_pressure_summary(
                 "intensity": min(1.0, round(info["count"] / max(1, total_pressures * 0.1), 2)),
             }
         )
-
-    # 트랩 데이터가 적은 경우 기본 핫스팟 보정
-    if not pressure_traps:
-        pressure_traps = [
-            {"zone": "Left Touchline Trap", "count": 3, "x": 68.0, "y": 14.0, "intensity": 0.75},
-            {"zone": "Right Touchline Trap", "count": 2, "x": 72.0, "y": 66.0, "intensity": 0.60},
-        ]
 
     return {
         "team_id": team_id,
