@@ -186,113 +186,6 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
         </div>
       </div>
 
-      {/* UEFA 6대 서브 국면 동적 포메이션 모핑 바 */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-emerald-400" />
-            <div>
-              <div className="text-sm font-bold text-white">UEFA 6대 서브 국면 포메이션 모핑</div>
-              <div className="text-xs text-slate-400">볼 소유 3단계 및 볼 미소유 수비 3단계 실시간 대형 모핑</div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {/* 볼 소유 3단계 */}
-            <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase self-center px-1.5 hidden sm:inline">
-                볼 소유
-              </span>
-              <button
-                onClick={() => {
-                  setSelectedPhase("buildup");
-                  setActiveTab("formation");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPhase === "buildup" && activeTab === "formation"
-                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                1. 후방 빌드업
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedPhase("progression");
-                  setActiveTab("formation");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPhase === "progression" && activeTab === "formation"
-                    ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                2. 중원 전개
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedPhase("final_third");
-                  setActiveTab("formation");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPhase === "final_third" && activeTab === "formation"
-                    ? "bg-rose-600 text-white shadow-lg shadow-rose-500/20"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                3. 기회 창출
-              </button>
-            </div>
-
-            {/* 볼 미소유 3단계 */}
-            <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
-              <span className="text-[10px] font-bold text-amber-400 uppercase self-center px-1.5 hidden sm:inline">
-                볼 미소유
-              </span>
-              <button
-                onClick={() => {
-                  setSelectedPhase("high_press");
-                  setActiveTab("formation");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPhase === "high_press" && activeTab === "formation"
-                    ? "bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                4. 전방 압박
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedPhase("mid_block");
-                  setActiveTab("formation");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPhase === "mid_block" && activeTab === "formation"
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                5. 미들 블록
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedPhase("low_block");
-                  setActiveTab("formation");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedPhase === "low_block" && activeTab === "formation"
-                    ? "bg-blue-900 text-white shadow-lg shadow-blue-900/40"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                6. 로우 블록
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 팀 선택 토글 & 전술 지표 탭 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-3">
         {/* 팀 토글 */}
@@ -397,6 +290,97 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           </button>
         </div>
       </div>
+
+      {/* 포메이션 탭 전용: UEFA 6대 서브 국면 동적 포메이션 모핑 바 */}
+      {activeTab === "formation" && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <Layers className="w-5 h-5 text-emerald-400" />
+              <div>
+                <div className="text-sm font-bold text-white">UEFA 6대 서브 국면 포메이션 모핑</div>
+                <div className="text-xs text-slate-400">볼 소유 3단계 및 볼 미소유 수비 3단계 실시간 대형 모핑</div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {/* 볼 소유 3단계 */}
+              <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase self-center px-1.5 hidden sm:inline">
+                  볼 소유
+                </span>
+                <button
+                  onClick={() => setSelectedPhase("buildup")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "buildup"
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  1. 후방 빌드업
+                </button>
+                <button
+                  onClick={() => setSelectedPhase("progression")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "progression"
+                      ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  2. 중원 전개
+                </button>
+                <button
+                  onClick={() => setSelectedPhase("final_third")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "final_third"
+                      ? "bg-rose-600 text-white shadow-lg shadow-rose-500/20"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  3. 기회 창출
+                </button>
+              </div>
+
+              {/* 볼 미소유 3단계 */}
+              <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 space-x-1">
+                <span className="text-[10px] font-bold text-amber-400 uppercase self-center px-1.5 hidden sm:inline">
+                  볼 미소유
+                </span>
+                <button
+                  onClick={() => setSelectedPhase("high_press")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "high_press"
+                      ? "bg-orange-600 text-white shadow-lg shadow-orange-500/20"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  4. 전방 압박
+                </button>
+                <button
+                  onClick={() => setSelectedPhase("mid_block")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "mid_block"
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  5. 미들 블록
+                </button>
+                <button
+                  onClick={() => setSelectedPhase("low_block")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPhase === "low_block"
+                      ? "bg-blue-900 text-white shadow-lg shadow-blue-900/40"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  6. 로우 블록
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 메인 콘텐츠 레이아웃: 좌측 바둑판 피치 + 우측 전술 지표 카드 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
