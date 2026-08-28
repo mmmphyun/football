@@ -8,6 +8,7 @@ from collections import defaultdict
 from typing import Any
 
 from app.analysis.common import build_lineup_maps, is_completed_pass
+from app.analysis.formation import determine_tactical_role
 
 
 def compute_pass_network(
@@ -90,13 +91,28 @@ def compute_pass_network(
             avg_x, avg_y = 60.0, 40.0
 
         disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
+        pos_name = p_info.get("primary_position", "Player")
+        pos_id = p_info.get("primary_position_id")
+
+        role_en, role_ko, role_desc = determine_tactical_role(
+            position_id=pos_id,
+            position_name=pos_name,
+            avg_x=avg_x,
+            avg_y=avg_y,
+            actions_count=attempts,
+        )
+
         node_obj = {
             "player_id": p_id,
             "player_name": disp_name,
             "player_nickname": p_info.get("player_nickname"),
             "full_name": p_info.get("player_name"),
             "jersey_number": p_info.get("jersey_number"),
-            "position": p_info.get("primary_position"),
+            "position": pos_name,
+            "position_id": pos_id,
+            "tactical_role": role_en,
+            "tactical_role_ko": role_ko,
+            "tactical_role_desc": role_desc,
             "is_starter": p_id in starting_xi,
             "x": avg_x,
             "y": avg_y,

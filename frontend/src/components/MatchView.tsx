@@ -26,6 +26,19 @@ interface MatchViewProps {
   summary: MatchSummary;
 }
 
+const PHASE_META: Record<
+  string,
+  { name: string; category: string; color: "emerald" | "sky" | "rose" | "orange" | "indigo" | "blue" }
+> = {
+  buildup: { name: "후방 빌드업", category: "볼 소유", color: "emerald" },
+  progression: { name: "중원 전개", category: "볼 소유", color: "sky" },
+  final_third: { name: "기회 창출", category: "볼 소유", color: "rose" },
+  high_press: { name: "전방 압박", category: "볼 미소유", color: "orange" },
+  mid_block: { name: "미들 블록", category: "볼 미소유", color: "indigo" },
+  low_block: { name: "로우 블록", category: "볼 미소유", color: "blue" },
+  overall: { name: "전체 평균", category: "종합", color: "sky" },
+};
+
 export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
   const teamIds = summary.team_ids || [];
   const homeTeamId = teamIds[0];
@@ -424,11 +437,11 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
           {activeTab === "formation" && (
             <div className="space-y-4">
               <StatCard
-                title={`${selectedPhase === "defensive" ? "수비" : selectedPhase === "attacking" ? "공격" : "빌드업"} 국면 대형`}
+                title={`${PHASE_META[selectedPhase]?.name ?? "국면"} 대형`}
                 value={currentFormationName}
                 subtitle={`라인 높이: ${phaseShape?.line_height?.toFixed(1) ?? "-"}m | 너비: ${phaseShape?.width?.toFixed(1) ?? "-"}m | 길이: ${phaseShape?.length?.toFixed(1) ?? "-"}m`}
-                badge={`${selectedPhase.toUpperCase()} SHAPE`}
-                badgeColor={selectedPhase === "defensive" ? "blue" : selectedPhase === "attacking" ? "rose" : "emerald"}
+                badge={`${PHASE_META[selectedPhase]?.category ?? "전술"} · ${PHASE_META[selectedPhase]?.name ?? selectedPhase}`}
+                badgeColor={PHASE_META[selectedPhase]?.color ?? "emerald"}
               />
 
               <div className="grid grid-cols-3 gap-2">
@@ -448,25 +461,29 @@ export const MatchView: React.FC<MatchViewProps> = ({ match, summary }) => {
 
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
-                  국면별 선수 참여 좌표 ({starters.length}명)
+                  국면별 선수 참여 및 실측 전술 역할 ({starters.length}명)
                 </h4>
-                <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                   {starters.map((p) => (
                     <div
                       key={p.player_id}
-                      className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80"
+                      className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 hover:border-sky-500/50 transition-colors"
                     >
-                      <div className="flex items-center space-x-2">
-                        <span className="w-5 h-5 flex items-center justify-center bg-slate-800 rounded text-slate-300 font-mono">
+                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                        <span className="w-5 h-5 flex items-center justify-center bg-slate-800 rounded text-slate-300 font-mono text-[11px]">
                           {p.jersey_number ?? "-"}
                         </span>
                         <span className="font-medium text-slate-200">{p.player_name}</span>
-                        {p.position && (
+                        {p.tactical_role_ko ? (
+                          <span className="text-[10px] bg-sky-950/80 text-sky-300 px-1.5 py-0.5 rounded border border-sky-800/60 font-bold">
+                            {p.tactical_role_ko}
+                          </span>
+                        ) : p.position ? (
                           <span className="text-[10px] text-slate-400">({p.position})</span>
-                        )}
+                        ) : null}
                       </div>
-                      <div className="font-mono text-slate-400">
-                        x: {p.x.toFixed(1)}, y: {p.y.toFixed(1)}
+                      <div className="font-mono text-slate-400 text-[11px] shrink-0 ml-2">
+                        ({p.x.toFixed(1)}, {p.y.toFixed(1)})
                       </div>
                     </div>
                   ))}
