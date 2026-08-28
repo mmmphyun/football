@@ -278,20 +278,35 @@ def _infer_shape_string(players_list: list[dict[str, Any]]) -> str:
     return best_shape
 
 
+def _trimmed_mean(values: list[float], trim_ratio: float = 0.15) -> float:
+    """상하위 trim_ratio 비율의 세트피스 잔여 및 극단 아웃라이어를 제거한 절사 평균을 계산합니다."""
+    if not values:
+        return 0.0
+    n = len(values)
+    if n <= 4:
+        return sum(values) / n
+    sorted_v = sorted(values)
+    k = int(n * trim_ratio)
+    if k > 0 and 2 * k < n:
+        trimmed = sorted_v[k : n - k]
+        return sum(trimmed) / len(trimmed)
+    return sum(values) / n
+
+
 def compute_formation_summary(
     events: list[dict[str, Any]],
     lineups: list[dict[str, Any]],
     team_id: int,
     three_sixty_frames: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """팀의 UEFA 6대 서브 국면 및 기본 국면별 실측 대형, 선수 평균 위치, 전술 역할, 컴팩트니스 지표를 산출합니다."""
+    """팀의 UEFA 6대 서브 국면 및 기본 국면별 하이브리드 대형, 선수 위치, 전술 역할, 컴팩트니스 지표를 산출합니다."""
     lineup_maps = build_lineup_maps(lineups)
     team_meta = lineup_maps.get(team_id, {"players": {}, "starting_xi": []})
     players_meta = team_meta.get("players", {})
     starting_xi = set(team_meta.get("starting_xi", []))
 
-    # 시작 포메이션 이름 추출 (Starting XI 이벤트 탐색)
-    formation_name = "Unknown"
+    # 기본 선발 포메이션 식별 (StatsBomb tactics)
+    formation_name = "4-3-3"
     for ev in events:
         if (
             ev.get("type", {}).get("name") == "Starting XI"
@@ -303,7 +318,7 @@ def compute_formation_summary(
                 formation_name = str(formation_num)
             break
 
-    # 6대 서브 국면별 실측 위치 수집 버킷
+    # 6대 서브 국면별 오픈 플레이(Regular Play) 실측 위치 수집 버킷
     # 1. 볼 소유 국면 (In-Possession)
     buildup_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
     progression_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
@@ -314,10 +329,14 @@ def compute_formation_summary(
     mid_block_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
     low_block_locs: dict[int, list[tuple[float, float]]] = defaultdict(list)
 
-    all_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
+    all_openplay_locations: dict[int, list[tuple[float, float]]] = defaultdict(list)
 
-    # 순수 이벤트 스트림 기반 실측 위치 수집 (반전 없이 0->120 그대로 사용)
+    # 순수 오픈 플레이(Regular Play) 이벤트만 추출하여 세트피스 노이즈 완전 배제
     for ev in events:
+        play_pattern = ev.get("play_pattern", {}).get("name", "")
+        if play_pattern != "Regular Play":
+            continue
+
         ev_team_id = ev.get("team", {}).get("id")
         player_info = ev.get("player")
         if not player_info:
@@ -332,7 +351,7 @@ def compute_formation_summary(
             continue
 
         x, y = float(loc[0]), float(loc[1])
-        all_locations[p_id].append((x, y))
+        all_openplay_locations[p_id].append((x, y))
 
         poss_team_id = ev.get("possession_team", {}).get("id")
 
@@ -345,7 +364,7 @@ def compute_formation_summary(
             else:
                 final_third_locs[p_id].append((x, y))
         else:
-            # 우리 팀 볼 미소유 국면 (우리 팀 선수가 수행한 수비 액션 등)
+            # 우리 팀 볼 미소유 국면 (수비 액션)
             if ev_team_id == team_id:
                 if x >= SUBPHASE_HIGH_PRESS_MIN_X:
                     high_press_locs[p_id].append((x, y))
@@ -358,57 +377,62 @@ def compute_formation_summary(
         loc_map: dict[int, list[tuple[float, float]]],
         phase_type: str = "overall",
     ) -> tuple[list[dict[str, Any]], float, float, float]:
-        """선수별 실측 평균 좌표 및 컴팩트니스(라인 높이, 너비, 길이)를 산출합니다.
-
-        국면별 실측 이벤트가 존재하는 선수는 100% 실측 평균을 그대로 사용하고,
-        해당 국면 데이터가 0건인 경우에만 국면의 공간적 전술 정의(phase fallback)를 적용합니다.
-        """
-        # 국면별 폴백 X축 델타 (데이터 부재 시에만 적용)
-        phase_dx_map = {
-            "buildup": -6.0,
+        """선발 포지션 구조적 앵커와 실측 오픈플레이 전술 변위를 결합한 하이브리드 좌표 및 컴팩트니스를 산출합니다."""
+        # 국면별 기준 베이스 X축 오프셋
+        phase_offset_map = {
+            "buildup": -12.0,
             "progression": 0.0,
-            "final_third": 8.0,
-            "high_press": 7.0,
-            "mid_block": 0.0,
-            "low_block": -10.0,
+            "final_third": 14.0,
+            "high_press": 10.0,
+            "mid_block": -2.0,
+            "low_block": -16.0,
             "overall": 0.0,
         }
-        phase_dx = phase_dx_map.get(phase_type, 0.0)
+        phase_offset = phase_offset_map.get(phase_type, 0.0)
 
         result: list[dict[str, Any]] = []
         for p_id, p_info in players_meta.items():
             locs = loc_map.get(p_id, [])
-            overall_locs = all_locations.get(p_id, [])
+            overall_locs = all_openplay_locations.get(p_id, [])
             count = len(locs)
             pos_id = p_info.get("primary_position_id")
             anchor = get_position_anchor(pos_id)
 
-            if count >= 1:
-                # 100% 순수 실측 평균
-                avg_x = sum(pt[0] for pt in locs) / count
-                avg_y = sum(pt[1] for pt in locs) / count
-            elif len(overall_locs) >= 1:
-                base_x = sum(pt[0] for pt in overall_locs) / len(overall_locs)
-                base_y = sum(pt[1] for pt in overall_locs) / len(overall_locs)
-                avg_x = base_x + phase_dx
-                avg_y = base_y
+            if count >= 3:
+                raw_trim_x = _trimmed_mean([pt[0] for pt in locs], trim_ratio=0.15)
+                raw_trim_y = _trimmed_mean([pt[1] for pt in locs], trim_ratio=0.15)
+            elif len(overall_locs) >= 3:
+                raw_trim_x = (
+                    _trimmed_mean([pt[0] for pt in overall_locs], trim_ratio=0.15) + phase_offset
+                )
+                raw_trim_y = _trimmed_mean([pt[1] for pt in overall_locs], trim_ratio=0.15)
             else:
-                avg_x = anchor[0] + phase_dx
-                avg_y = anchor[1]
+                raw_trim_x = anchor[0] + phase_offset
+                raw_trim_y = anchor[1]
+
+            # 하이브리드 블렌딩: 기본 전술 앵커(구조적 뼈대) 45% + 실측 오픈플레이 전술 변위 55%
+            if pos_id == 1:
+                # 골키퍼는 골문 앞 안정적 보호 (5.5m ~ 16.0m)
+                hybrid_x = max(5.5, min(16.0, 0.6 * anchor[0] + 0.4 * raw_trim_x))
+                hybrid_y = max(34.0, min(46.0, 0.7 * anchor[1] + 0.3 * raw_trim_y))
+            else:
+                base_x = anchor[0] + phase_offset
+                hybrid_x = 0.45 * base_x + 0.55 * raw_trim_x
+                hybrid_y = 0.40 * anchor[1] + 0.60 * raw_trim_y
 
             # 피치 영역 클램핑 (StatsBomb 규격 120 x 80)
-            avg_x = max(0.0, min(120.0, avg_x))
-            avg_y = max(0.0, min(80.0, avg_y))
+            hybrid_x = max(3.0, min(116.0, hybrid_x))
+            hybrid_y = max(4.0, min(76.0, hybrid_y))
 
             disp_name = p_info.get("player_nickname") or p_info.get("player_name", "Unknown")
             pos_name = p_info.get("primary_position", "Player")
 
-            # 실측 기반 전술 역할 판정
+            # 실측 기반 전술 역할 판정 (하이브리드 실측 좌표 기준)
             role_en, role_ko, role_desc = determine_tactical_role(
                 position_id=pos_id,
                 position_name=pos_name,
-                avg_x=avg_x,
-                avg_y=avg_y,
+                avg_x=hybrid_x,
+                avg_y=hybrid_y,
                 actions_count=count or len(overall_locs),
             )
 
@@ -426,8 +450,8 @@ def compute_formation_summary(
                     "tactical_role_desc": role_desc,
                     "is_starter": p_id in starting_xi,
                     "event_count": count or len(overall_locs),
-                    "x": round(avg_x, 2),
-                    "y": round(avg_y, 2),
+                    "x": round(hybrid_x, 2),
+                    "y": round(hybrid_y, 2),
                     "anchor_x": anchor[0],
                     "anchor_y": anchor[1],
                 }
@@ -440,8 +464,8 @@ def compute_formation_summary(
         if field_starters:
             xs = [p["x"] for p in field_starters]
             ys = [p["y"] for p in field_starters]
-            length = round(max(xs) - min(xs), 2)
-            width = round(max(ys) - min(ys), 2)
+            length = max(10.0, round(max(xs) - min(xs), 2))
+            width = max(15.0, round(max(ys) - min(ys), 2))
 
             defenders = [p for p in field_starters if p.get("position_id") in DEFENDER_POSITION_IDS]
             if defenders:
@@ -452,7 +476,7 @@ def compute_formation_summary(
 
             line_height = max(10.0, min(85.0, line_height))
         else:
-            length = 35.0
+            length = 30.0
             width = 45.0
             line_height = 35.0
 
@@ -472,7 +496,7 @@ def compute_formation_summary(
 
     # 전반적 지표 계산
     overall_players, overall_line, overall_w, overall_l = _calc_player_metrics(
-        all_locations, phase_type="overall"
+        all_openplay_locations, phase_type="overall"
     )
 
     def _extract_eleven(p_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
